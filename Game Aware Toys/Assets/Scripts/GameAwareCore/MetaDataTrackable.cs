@@ -26,23 +26,26 @@ namespace GameAware {
         private Renderer ren;
 
 
-        void Awake() {
+        protected virtual void Awake() {
             objectKey = System.Guid.NewGuid().ToString();
         }
 
-        void Start() {
+        protected virtual void Start() {
             MetaDataTracker.Instance.AddTrackableObject(this);
             col = GetComponent<Collider>();
             ren = GetComponent<Renderer>();
         }
 
-        void OnDestroy() {
+        protected virtual void OnDestroy() {
             MetaDataTracker.Instance.RemoveTrackableObject(this);
         }
 
         public virtual JObject InbetweenData() {
             JObject jObject = new JObject();
             switch (this.screenRectStyle) {
+                case ScreenSpaceReference.Transform:
+                    jObject["screenRect"] = JsonConvert.SerializeObject(ScreenSpaceHelper.ScreenPosition(Camera.main, transform.position));
+                    break;
                 case ScreenSpaceReference.Collider:
                     //TODO we might want to have a better system for referencing cameras here. Both for flexibility and performance.
                     jObject["screenRect"] = JsonConvert.SerializeObject(ScreenSpaceHelper.ScreenRect(Camera.main, col));
@@ -62,6 +65,9 @@ namespace GameAware {
         public virtual JObject KeyFrameData() {
             JObject jObject = new JObject();
             switch (this.screenRectStyle) {
+                case ScreenSpaceReference.Transform:
+                    jObject["screenRect"] = JsonConvert.SerializeObject(ScreenSpaceHelper.ScreenPosition(Camera.main, transform.position));
+                    break;
                 case ScreenSpaceReference.Collider:
                     //TODO we might want to have a better system for referencing cameras here. Both for flexibility and performance.
                     jObject["screenRect"] = JsonConvert.SerializeObject(ScreenSpaceHelper.ScreenRect(Camera.main, col));
