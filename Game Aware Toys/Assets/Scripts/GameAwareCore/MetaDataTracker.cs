@@ -11,25 +11,28 @@ using Newtonsoft.Json.Linq;
 namespace GameAware {
 
     public class MetaDataTracker : MonoBehaviour {
+        public static MetaDataTracker Instance { get; private set; } = null;
 
-        private static MetaDataTracker _instance = null;
-        public static MetaDataTracker Instance { get { return _instance; } }
-
-        private List<IMetaDataTrackable> mdItems = new List<IMetaDataTrackable>();
+        private List<IMetaDataTrackable> keyItems = new List<IMetaDataTrackable>();
+        private List<IMetaDataTrackable> tweenItems = new List<IMetaDataTrackable>();
 
         private long keyFrameNum = 0;
-        private int inbetweenNum = 0;
-        private float lastKeyTime = 0;
+        private float lastKeyTime = float.NegativeInfinity;
+        private float lastTweenTime = float.NegativeInfinity;
 
         private JArray tweens = new JArray();
         private JObject currentFrameData = new JObject();
 
-        public string metaDataURL = "localhost";
-        public int metaDataPort = 6379;
-        public int metaDataKeepAlive = 180;
-        public string metaDataPassword = "changeme";
+        [Tooltip("The URL of the Redis Middlware service")]
+        public string url = "localhost";
+        [Tooltip("The port used by the Redis Middleware service. The conventional Redis port is 6379.")]
+        public int port = 6379;
+        [Tooltip("The number of seconds used to keep the connection to the Middleware service alive")]
+        public int keepAliveTime = 180;
+        [Tooltip("Password for the Redis Middleware service")]
+        public string password = "changeme";
+        [Tooltip("True = a connection to the MiddleWare service will be made on Start. False = a connection to the Middleware service must be triggered at some point later.")]
         public bool connectOnStart = false;
-        private ConfigurationOptions metaDataConfig = null;
 
         public bool recording = true;
 
@@ -45,17 +48,35 @@ namespace GameAware {
         private const string END_FRAME = "end_frame";
         private const string PUB_SUB_CHANNEL = "server_control";
 
-        [Tooltip("The number of seconds per keyframe")]
+        public enum RecordingUpdate {
+            Update,
+            LateUpdate,
+            FixedUpdate
+        }
+
+        [Tooltip("Which of Unity's update loops should be used to record data. This is more for making it easy to do testing between the options for now. I don't think this setting will make it into the final version.")]
+        public RecordingUpdate updateMode = RecordingUpdate.Update;
+
+        private float CurrentTime {
+            get {
+                return updateMode == RecordingUpdate.FixedUpdate ? Time.fixedTime : Time.time;
+            }
+        }
+
+        [Tooltip("The number of key frames per second")]
         public float keyFrameRate = 1.0f;
+
+        [Tooltip("The number of tween frames per second")]
+        public float tweenFrameRate = 24f;
 
         // Use this for initialization
         void Awake() {
-            if (_instance != null) {
+            if (Instance != null) {
                 Debug.LogWarning("Multiple MetaDataTrackers in Scene");
                 Destroy(this.gameObject);
             }
             else {
-                _instance = this;
+                Instance = this;
                 DontDestroyOnLoad(this);
                 SceneManager.activeSceneChanged += OnSceneChange;
             }
@@ -77,10 +98,10 @@ namespace GameAware {
         void InitConnection() {
             ConfigurationOptions config = new ConfigurationOptions {
                 EndPoints = {
-                    { metaDataURL, metaDataPort },
+                    { url, port },
                 },
-                KeepAlive = metaDataKeepAlive,
-                Password = metaDataPassword
+                KeepAlive = keepAliveTime,
+                Password = password
             };
 
             redisConn = ConnectionMultiplexer.Connect(config);
@@ -127,19 +148,20 @@ namespace GameAware {
                 {"game_name", gameName },
                 {"streamer_name", streamerName },
                 {"key_frame_rate", keyFrameRate },
-                {"tween_frame_rate", Application.targetFrameRate }, // I am not confident this is the right value but conceptually this is the idea. Ultimately we probably want this living in its own coroutine.
-                {"game_secs", Time.fixedTime },
+                {"tween_frame_rate", tweenFrameRate },
+                {"game_secs", CurrentTime },
                 {"clock_mills",DateTimeOffset.Now.ToUnixTimeMilliseconds().ToString() },
             };
             string mess = JsonConvert.SerializeObject(startMessage);
             PublishMetaData(PUB_SUB_CHANNEL, "start");
             WriteMetaData(START_FRAME, mess);
+            recording = true;
         }
 
         public void EndMetaDataConnection() {
             var endMessage = new JObject {
                 {"final_frame_num", keyFrameNum },
-                {"game_secs", Time.fixedTime },
+                {"game_secs", CurrentTime },
                 {"clock_mills",DateTimeOffset.Now.ToUnixTimeMilliseconds().ToString() },
             };
             string mess = JsonConvert.SerializeObject(endMessage);
@@ -148,11 +170,13 @@ namespace GameAware {
         }
 
         /** General Data Schema
-         * keyFrameNum: {"key":{"obj_id1":{...}, "obj_id2":{...}, ...}, 
-         *               "tweens": [{"obj_id1":{...}, "obj_id2":{...}, ...},
-         *                          {"obj_id1":{...}, "obj_id2":{...}, ...}]}
+         * keyFrameNum: {"game_time":float,
+         *               "frame_num":int,
+         *               "key":{"obj_id1":{...}, "obj_id2":{...}, ...}, 
+         *               "tweens": [{"dt":float, "game_time":float, "obj_id1":{...}, "obj_id2":{...}, ...},
+         *                          {"dt":float, "game_time":float, "obj_id1":{...}, "obj_id2":{...}, ...}]}
          *                    
-         * Would be nice to have this as a low-bandwidth option
+         * If there are no Tween objects being recorded or if they report nothing then the tween list might be missing
          * keyFrameNum: {"key":{"obj_id1":{}, "obj_id2":{}, ...}}
          * 
          * Possible Future Schema
@@ -163,61 +187,107 @@ namespace GameAware {
          * 
          */
         void FixedUpdate() {
-            if (Time.fixedTime - lastKeyTime > keyFrameRate) {
-                // add the tweens to the previous keyframe
-                currentFrameData["tweens"] = tweens;
+            if (updateMode != RecordingUpdate.FixedUpdate) return;
 
-                string frameString = JsonConvert.SerializeObject(currentFrameData);
-
-
-                WriteMetaData(keyFrameNum.ToString(), frameString, true);
-                WriteMetaData(LATEST_FRAME, frameString, true);
-
-
-
-                inbetweenNum = 0;
-                keyFrameNum += 1;
-                lastKeyTime = Time.fixedTime;
-                SnapKeyFrame();
+            if (Time.fixedTime - lastKeyTime > 1 / keyFrameRate) {
+                SendKeyFrame();
             }
-            else {
-                inbetweenNum += 1;
-                JObject newInbetween = new JObject {
-                    {"dt", Time.fixedDeltaTime },
-                    {"frame_num", inbetweenNum }
-                };
-                foreach (IMetaDataTrackable mdo in mdItems) {
-                    if (mdo.FrameType == MetaDataFrameType.Inbetween) {
-                        newInbetween[mdo.ObjectKey] = mdo.InbetweenData();
-                    }
-                }
-                tweens.Add(newInbetween);
+            else if(Time.fixedTime - lastTweenTime > 1 / tweenFrameRate) {
+                SnapTweenFrame();
             }
         }
 
+        void Update() {
+            if (updateMode != RecordingUpdate.Update) return;
+
+            if (Time.time - lastKeyTime > 1 / keyFrameRate) {
+                SendKeyFrame();
+            }
+            else if (Time.time - lastTweenTime > 1 / tweenFrameRate) {
+                SnapTweenFrame();
+            }
+        }
+
+        void LateUpdate() {
+            if (updateMode != RecordingUpdate.LateUpdate) return;
+
+            if (Time.time - lastKeyTime > 1 / keyFrameRate) {
+                SendKeyFrame();
+            }
+            else if (Time.time - lastTweenTime > 1 / tweenFrameRate) {
+                SnapTweenFrame();
+            }
+        }
+
+
+        private void SendKeyFrame() {
+            if (tweens.Count > 0) {
+                currentFrameData["tweens"] = tweens;
+            }
+            string frameString = JsonConvert.SerializeObject(currentFrameData);
+
+            WriteMetaData(keyFrameNum.ToString(), frameString, true);
+            WriteMetaData(LATEST_FRAME, frameString, true);
+
+            keyFrameNum += 1;
+            SnapKeyFrame();
+        }
+
+
         private void SnapKeyFrame() {
+            if(!recording) {
+                return;
+            }
             currentFrameData = new JObject {
-                {"game_secs", Time.fixedTime },
+                {"game_time", CurrentTime },
                 {"frame_num", keyFrameNum }
             };
             JObject key = new JObject();
-            foreach (IMetaDataTrackable mdo in mdItems) {
+            foreach (IMetaDataTrackable mdo in keyItems) {
                 key[mdo.ObjectKey] = mdo.KeyFrameData();
             }
             currentFrameData["key"] = key;
+
+            lastKeyTime = CurrentTime;
+            lastTweenTime = CurrentTime;
             //currentFrameData["frame"] = keyFrameNum;
         }
 
+        private void SnapTweenFrame() {
+            if (tweenItems.Count == 0 || !recording) {
+                return;
+            }
+
+            //inbetweenNum += 1;
+            JObject newInbetween = new JObject {
+                    {"dt", CurrentTime - lastTweenTime },
+                    {"game_time", CurrentTime},
+                    //{"frame_num", inbetweenNum }
+                };
+            foreach (IMetaDataTrackable mdo in tweenItems) {
+                newInbetween[mdo.ObjectKey] = mdo.InbetweenData();
+            }
+            if (newInbetween.Count > 0) {
+                tweens.Add(newInbetween);
+                lastTweenTime = CurrentTime;
+            }
+        }
+
         void OnSceneChange(Scene current, Scene next) {
-            mdItems = mdItems.Where(md => md.PersistAcrossScenes).ToList();
+            keyItems = keyItems.Where(md => md.PersistAcrossScenes).ToList();
+            tweenItems = tweenItems.Where(md => md.PersistAcrossScenes).ToList();
         }
 
         public void AddTrackableObject(IMetaDataTrackable mdo) {
-            this.mdItems.Add(mdo);
+            keyItems.Add(mdo);
+            if (mdo.FrameType == MetaDataFrameType.Inbetween) {
+                tweenItems.Add(mdo);
+            }
         }
 
         public void RemoveTrackableObject(IMetaDataTrackable mdo) {
-            this.mdItems.Remove(mdo);
+            keyItems.Remove(mdo);
+            tweenItems.Remove(mdo);
         }
 
         void OnDestroy() {
