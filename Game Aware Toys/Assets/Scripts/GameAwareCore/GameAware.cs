@@ -15,37 +15,83 @@ namespace GameAware {
         Renderer
     }
 
-	public static class ScreenSpaceHelper {
-		public static Vector2 ScreenPosition(Camera camera, Vector3 position) {
-			var screenPos = camera.WorldToScreenPoint(position);
-			return new Vector2((int)(10000 * screenPos.x / camera.pixelWidth), (int)(10000 * screenPos.y / camera.pixelHeight));
+	/// <summary>
+	/// An integer based Vector2 struct to simplify screenspace math and avoid serializing extra properties of the built in vector structs.
+	/// 
+	/// OPTIMIZATION POTENTIAL
+	/// If we stick with the paradigm of return screen space as an integer fraction of 10,000 we could probably get away with this class 
+	/// being based on shorts instead of ints if saving memory space is ever a concern.
+	/// </summary>
+	public struct IntVector2 {
+		public static IntVector2 zero = new IntVector2(0, 0);
+
+		public static IntVector2 Min(IntVector2 vec1, IntVector2 vec2) {
+			return new IntVector2(Mathf.Min(vec1.x, vec2.x), Mathf.Min(vec1.y, vec2.y));
+		}
+		public static IntVector2 Max(IntVector2 vec1, IntVector2 vec2) {
+			return new IntVector2(Mathf.Max(vec1.x, vec2.x), Mathf.Max(vec1.y, vec2.y));
 		}
 
-		public static Vector2 ScreenPosition(Camera camera, MonoBehaviour gameObject) {
+		public int x;
+		public int y;
+
+		public IntVector2 (int x, int y) {
+			this.x = x;
+			this.y = y;
+        }
+
+		public IntVector2(Vector2 vec) {
+			x = (int)vec.x;
+			y = (int)vec.y;
+        }
+	}
+
+	public struct IntRect {
+		public float x;
+		public float y;
+		public float w;
+		public float h;
+
+		public IntRect (float x, float y, float w, float h) {
+			this.x = x;
+			this.y = y;
+			this.w = w;
+			this.h = h;
+        }
+
+    }
+
+	public static class ScreenSpaceHelper {
+		public static IntVector2 ScreenPosition(Camera camera, Vector3 position) {
+			var screenPos = camera.WorldToScreenPoint(position);
+			return new IntVector2((int)(10000 * screenPos.x / camera.pixelWidth), (int)(10000 * screenPos.y / camera.pixelHeight));
+		}
+
+		public static IntVector2 ScreenPosition(Camera camera, MonoBehaviour gameObject) {
 			return ScreenPosition(camera, gameObject.transform.position);
 		}
 
-		private static Vector2[] boundsHelper = new Vector2[8];
-		private static Vector2 min = Vector2.zero;
-		private static Vector2 max = Vector2.zero;
+		private static IntVector2[] boundsHelper = new IntVector2[8];
+		private static IntVector2 min = IntVector2.zero;
+		private static IntVector2 max = IntVector2.zero;
 
-		public static Rect ScreenRect(Camera camera, Renderer renderer) {
+		public static IntRect ScreenRect(Camera camera, Renderer renderer) {
 			if (renderer == null) {
 				Debug.LogWarning("ScreenRect Called on null Renderer");
-				return new Rect(0, 0, 0, 0);
+				return new IntRect(0, 0, 0, 0);
 			}
 			return ScreenRect(camera, renderer.bounds);
 		}
 
-		public static Rect ScreenRect(Camera camera, Collider collider) {
+		public static IntRect ScreenRect(Camera camera, Collider collider) {
 			if (collider == null) {
 				Debug.LogWarning("ScreenRect Called on null Collider");
-				return new Rect(0, 0, 0, 0);
+				return new IntRect(0, 0, 0, 0);
 			}
 			return ScreenRect(camera, collider.bounds);
 		}
 
-		public static Rect ScreenRect(Camera camera, Bounds bounds) {
+		public static IntRect ScreenRect(Camera camera, Bounds bounds) {
 			boundsHelper[0] = ScreenPosition(camera, new Vector3(bounds.min.x, bounds.max.y, bounds.min.z));  //ftl
 			boundsHelper[1] = ScreenPosition(camera, new Vector3(bounds.max.x, bounds.max.y, bounds.min.z));  //ftr
 			boundsHelper[2] = ScreenPosition(camera, new Vector3(bounds.max.x, bounds.min.y, bounds.min.z));  //fbr
@@ -60,12 +106,12 @@ namespace GameAware {
 			min = boundsHelper[0];
 			max = boundsHelper[0];
 
-			foreach (Vector2 vec in boundsHelper) {
-				min = Vector2.Min(min, vec);
-				max = Vector2.Max(max, vec);
+			foreach (IntVector2 vec in boundsHelper) {
+				min = IntVector2.Min(min, vec);
+				max = IntVector2.Max(max, vec);
 			}
 
-			return new Rect(min.x, min.y, max.x - min.x, max.y - min.y);
+			return new IntRect(min.x, min.y, max.x - min.x, max.y - min.y);
 		}
 	}
 
