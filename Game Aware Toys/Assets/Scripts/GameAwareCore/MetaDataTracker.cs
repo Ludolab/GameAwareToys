@@ -34,7 +34,7 @@ namespace GameAware {
         [Tooltip("True = a connection to the MiddleWare service will be made on Start. False = a connection to the Middleware service must be triggered at some point later.")]
         public bool connectOnStart = false;
 
-        public bool recording = true;
+        public bool recording = false;
 
         [Tooltip("Name of your game, hardcoded for the start message")]
         public string gameName = "";
@@ -86,13 +86,13 @@ namespace GameAware {
             yield return new WaitForEndOfFrame();
             if (connectOnStart) {
                 InitConnection();
-                StartMetaData();
+                yield return StartMetaData();
             }
             SnapKeyFrame();
         }
 
         private void WriteMetaData(string key, string message) {
-            WriteMetaData(key, message, false);
+            WriteMetaData(key, message, true);
         }
 
         void InitConnection() {
@@ -143,7 +143,10 @@ namespace GameAware {
             }
         }
 
-        public void StartMetaData() {
+        public IEnumerator StartMetaData() {
+            while(redDb == null) {
+                yield return new WaitForEndOfFrame();
+            }
             var startMessage = new JObject {
                 {"game_name", gameName },
                 {"streamer_name", streamerName },
@@ -153,9 +156,9 @@ namespace GameAware {
                 {"clock_mills",DateTimeOffset.Now.ToUnixTimeMilliseconds().ToString() },
             };
             string mess = JsonConvert.SerializeObject(startMessage);
+            recording = true;
             PublishMetaData(PUB_SUB_CHANNEL, "start");
             WriteMetaData(START_FRAME, mess);
-            recording = true;
         }
 
         public void EndMetaDataConnection() {
@@ -187,7 +190,7 @@ namespace GameAware {
          * 
          */
         void FixedUpdate() {
-            if (updateMode != RecordingUpdate.FixedUpdate) return;
+            if (updateMode != RecordingUpdate.FixedUpdate || !recording) return;
 
             if (Time.fixedTime - lastKeyTime > 1 / keyFrameRate) {
                 SendKeyFrame();
@@ -198,7 +201,7 @@ namespace GameAware {
         }
 
         void Update() {
-            if (updateMode != RecordingUpdate.Update) return;
+            if (updateMode != RecordingUpdate.Update || !recording) return;
 
             if (Time.time - lastKeyTime > 1 / keyFrameRate) {
                 SendKeyFrame();
@@ -209,7 +212,7 @@ namespace GameAware {
         }
 
         void LateUpdate() {
-            if (updateMode != RecordingUpdate.LateUpdate) return;
+            if (updateMode != RecordingUpdate.LateUpdate || !recording) return;
 
             if (Time.time - lastKeyTime > 1 / keyFrameRate) {
                 SendKeyFrame();
@@ -240,7 +243,7 @@ namespace GameAware {
             }
             currentFrameData = new JObject {
                 {"game_time", CurrentTime },
-                {"frame_num", keyFrameNum }
+                {"frame", keyFrameNum }
             };
             JObject key = new JObject();
             foreach (IMetaDataTrackable mdo in keyItems) {
