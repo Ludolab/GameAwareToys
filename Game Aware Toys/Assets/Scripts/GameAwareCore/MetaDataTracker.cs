@@ -48,6 +48,8 @@ namespace GameAware {
         private const string END_FRAME = "end_frame";
         private const string PUB_SUB_CHANNEL = "server_control";
 
+        
+
         public enum RecordingUpdate {
             Update,
             LateUpdate,
@@ -56,6 +58,8 @@ namespace GameAware {
 
         [Tooltip("Which of Unity's update loops should be used to record data. This is more for making it easy to do testing between the options for now. I don't think this setting will make it into the final version.")]
         public RecordingUpdate updateMode = RecordingUpdate.Update;
+
+        
 
         private float CurrentTime {
             get {
@@ -68,6 +72,14 @@ namespace GameAware {
 
         [Tooltip("The number of tween frames per second")]
         public float tweenFrameRate = 24f;
+
+        public enum DebugSetting {
+            None,
+            All,
+            ConstantsOnly
+        }
+        [Tooltip("Controls debug printing. All=prints everything, None=turns off everything, ConstantsOnly=only prints start_frame, latest, and end_frame")]
+        public DebugSetting debugSetting = DebugSetting.All;
 
         // Use this for initialization
         void Awake() {
@@ -114,11 +126,29 @@ namespace GameAware {
 
             if (redDb != null && recording) {
                 if (asynchronous) {
-                    Debug.Log("Writing Meta Data Async: " + key + ", " + message);
+                    switch (debugSetting) {
+                        case DebugSetting.All:
+                            Debug.LogFormat("Redis Write Async: {0}: {1}", key, message);
+                            break;
+                        case DebugSetting.ConstantsOnly:
+                            if (key == LATEST_FRAME || key == START_FRAME || key == END_FRAME) {
+                                Debug.LogFormat("Redis Write Async: {0}: {1}", key, message);
+                            }
+                            break;
+                    }
                     redDb.StringSetAsync(key, message, flags: CommandFlags.FireAndForget);
                 }
                 else {
-                    Debug.Log("Writing Meta Data: " + key + ", " + message);
+                    switch (debugSetting) {
+                        case DebugSetting.All:
+                            Debug.LogFormat("Redis Write: {0}: {1}", key, message);
+                            break;
+                        case DebugSetting.ConstantsOnly:
+                            if (key == LATEST_FRAME || key == START_FRAME || key == END_FRAME) {
+                                Debug.LogFormat("Redis Write: {0}: {1}", key, message);
+                            }
+                            break;
+                    }
                     redDb.StringSet(key, message);
                 }
             }
@@ -268,7 +298,10 @@ namespace GameAware {
                     //{"frame_num", inbetweenNum }
                 };
             foreach (IMetaDataTrackable mdo in tweenItems) {
-                newInbetween[mdo.ObjectKey] = mdo.InbetweenData();
+                JObject mdoTween = mdo.InbetweenData();
+                if (mdoTween.Count > 0) {
+                    newInbetween[mdo.ObjectKey] = mdo.InbetweenData();
+                }
             }
             if (newInbetween.Count > 0) {
                 tweens.Add(newInbetween);
