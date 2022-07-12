@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using Newtonsoft.Json.Linq;
 
 namespace GameAware {
     public enum MetaDataFrameType {
@@ -44,6 +45,13 @@ namespace GameAware {
 			x = (int)vec.x;
 			y = (int)vec.y;
         }
+
+		public JObject toJObject() {
+			return new JObject {
+				{"x", x },
+				{"y", y }
+			};
+        }
 	}
 
 	public struct IntRect {
@@ -57,18 +65,36 @@ namespace GameAware {
 			this.y = y;
 			this.w = w;
 			this.h = h;
-        }
+		}
 
-    }
+		public JObject toJObject() {
+			return new JObject {
+				{"x", x },
+				{"y", y },
+				{"w", w },
+				{"h", h }
+			};
+		}
+
+	}
 
 	public static class ScreenSpaceHelper {
-		public static IntVector2 ScreenPosition(Camera camera, Vector3 position) {
-			var screenPos = camera.WorldToScreenPoint(position);
-			return new IntVector2((int)(10000 * screenPos.x / camera.pixelWidth), (int)(10000 * screenPos.y / camera.pixelHeight));
+
+		public static IntVector2 ScreenPosition(Vector3 position) {
+			return ScreenPosition(Camera.main, position);
+		}
+
+		public static IntVector2 ScreenPosition(MonoBehaviour gameObject) {
+			return ScreenPosition(Camera.main, gameObject.transform.position);
 		}
 
 		public static IntVector2 ScreenPosition(Camera camera, MonoBehaviour gameObject) {
 			return ScreenPosition(camera, gameObject.transform.position);
+		}
+
+		public static IntVector2 ScreenPosition(Camera camera, Vector3 position) {
+			var screenPos = camera.WorldToScreenPoint(position);
+			return new IntVector2((int)(10000 * screenPos.x / camera.pixelWidth), (int)(10000 * screenPos.y / camera.pixelHeight));
 		}
 
 		private static IntVector2[] boundsHelper = new IntVector2[8];
@@ -83,12 +109,28 @@ namespace GameAware {
 			return ScreenRect(camera, renderer.bounds);
 		}
 
+		public static IntRect ScreenRect(Renderer renderer) {
+			if (renderer == null) {
+				Debug.LogWarning("ScreenRect Called on null Renderer");
+				return new IntRect(0, 0, 0, 0);
+			}
+			return ScreenRect(Camera.main, renderer.bounds);
+		}
+
 		public static IntRect ScreenRect(Camera camera, Collider collider) {
 			if (collider == null) {
 				Debug.LogWarning("ScreenRect Called on null Collider");
 				return new IntRect(0, 0, 0, 0);
 			}
 			return ScreenRect(camera, collider.bounds);
+		}
+
+		public static IntRect ScreenRect(Collider collider) {
+			if (collider == null) {
+				Debug.LogWarning("ScreenRect Called on null Collider");
+				return new IntRect(0, 0, 0, 0);
+			}
+			return ScreenRect(Camera.main, collider.bounds);
 		}
 
 		public static IntRect ScreenRect(Camera camera, Bounds bounds) {

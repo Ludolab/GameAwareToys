@@ -44,14 +44,14 @@ namespace GameAware {
             JObject jObject = new JObject();
             switch (this.screenRectStyle) {
                 case ScreenSpaceReference.Transform:
-                    jObject["screenRect"] = JsonConvert.SerializeObject(ScreenSpaceHelper.ScreenPosition(Camera.main, transform.position));
+                    jObject["screenRect"] = ScreenSpaceHelper.ScreenPosition(transform.position).toJObject();
                     break;
                 case ScreenSpaceReference.Collider:
                     //TODO we might want to have a better system for referencing cameras here. Both for flexibility and performance.
-                    jObject["screenRect"] = JsonConvert.SerializeObject(ScreenSpaceHelper.ScreenRect(Camera.main, col));
+                    jObject["screenRect"] = ScreenSpaceHelper.ScreenRect(col).toJObject();
                     break;
                 case ScreenSpaceReference.Renderer:
-                    jObject["screenRect"] = JsonConvert.SerializeObject(ScreenSpaceHelper.ScreenRect(Camera.main, ren));
+                    jObject["screenRect"] = ScreenSpaceHelper.ScreenRect(ren).toJObject();
                     break;
                 case ScreenSpaceReference.None:
                     break;
@@ -66,14 +66,14 @@ namespace GameAware {
             JObject jObject = new JObject();
             switch (this.screenRectStyle) {
                 case ScreenSpaceReference.Transform:
-                    jObject["screenRect"] = JsonConvert.SerializeObject(ScreenSpaceHelper.ScreenPosition(Camera.main, transform.position));
+                    jObject["screenRect"] = ScreenSpaceHelper.ScreenPosition(transform.position).toJObject();
                     break;
                 case ScreenSpaceReference.Collider:
                     //TODO we might want to have a better system for referencing cameras here. Both for flexibility and performance.
-                    jObject["screenRect"] = JsonConvert.SerializeObject(ScreenSpaceHelper.ScreenRect(Camera.main, col));
+                    jObject["screenRect"] = ScreenSpaceHelper.ScreenRect(col).toJObject();
                     break;
                 case ScreenSpaceReference.Renderer:
-                    jObject["screenRect"] = JsonConvert.SerializeObject(ScreenSpaceHelper.ScreenRect(Camera.main, ren));
+                    jObject["screenRect"] = ScreenSpaceHelper.ScreenRect(ren).toJObject();
                     break;
                 case ScreenSpaceReference.None:
                     break;
