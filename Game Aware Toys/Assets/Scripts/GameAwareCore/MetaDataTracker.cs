@@ -256,6 +256,7 @@ namespace GameAware {
         private void SendKeyFrame() {
             if (tweens.Count > 0) {
                 currentFrameData["tweens"] = tweens;
+                tweens = new JArray();
             }
             string frameString = JsonConvert.SerializeObject(currentFrameData);
 
