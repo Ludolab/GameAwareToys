@@ -8,4 +8,16 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/BasicWalker.unity
     guid: 2cda990e2423bbf4892e6590ba056729
+  - enabled: 1
+    path: Assets/Scenes/MultiWalker.unity
+    guid: bad67150bebc0c343a652deffe2e7c2c
+  - enabled: 1
+    path: Assets/Scenes/OffCameraWalkers.unity
+    guid: 8b4140304204b404694d756d65563299
+  - enabled: 1
+    path: Assets/Scenes/FairyFountainFirefly2.unity
+    guid: 8a34e0affef015745858d1ece1f233e5
+  - enabled: 1
+    path: Assets/Scenes/MovingCameraMultiWalker.unity
+    guid: eaf406e9997c1d44bbe9fc4dcc8c88cf
   m_configObjects: {}
