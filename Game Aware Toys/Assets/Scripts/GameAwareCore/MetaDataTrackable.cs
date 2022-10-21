@@ -11,16 +11,19 @@ namespace GameAware {
         public string ObjectKey { get { return objectKey; } }
 
         [SerializeField]
+        [HideInInspector]
         protected MetaDataFrameType frameType;
         public MetaDataFrameType FrameType { get { return frameType; } set { frameType = value; } }
 
         [SerializeField]
+        [HideInInspector]
         protected bool persistAcrossScenes;
         public bool PersistAcrossScenes { get { return persistAcrossScenes; } set { persistAcrossScenes = value; } }
 
         [SerializeField]
+        [HideInInspector]
         protected ScreenSpaceReference screenRectStyle;
-        public ScreenSpaceReference ScreenRectStyle { get { return ScreenRectStyle; } set { screenRectStyle = value; } }
+        public ScreenSpaceReference ScreenRectStyle { get { return screenRectStyle; } set { screenRectStyle = value; } }
 
         private Collider col;
         private Renderer ren;
@@ -44,14 +47,14 @@ namespace GameAware {
             JObject jObject = new JObject();
             switch (this.screenRectStyle) {
                 case ScreenSpaceReference.Transform:
-                    jObject["screenRect"] = ScreenSpaceHelper.ScreenPosition(transform.position).toJObject();
+                    jObject["screenRect"] = ScreenSpaceHelper.ViewerScreenPoint(transform.position).ToJObject();
                     break;
                 case ScreenSpaceReference.Collider:
                     //TODO we might want to have a better system for referencing cameras here. Both for flexibility and performance.
-                    jObject["screenRect"] = ScreenSpaceHelper.ScreenRect(col).toJObject();
+                    jObject["screenRect"] = ScreenSpaceHelper.ViewerScreenRectPosition(col).ToJObject();
                     break;
                 case ScreenSpaceReference.Renderer:
-                    jObject["screenRect"] = ScreenSpaceHelper.ScreenRect(ren).toJObject();
+                    jObject["screenRect"] = ScreenSpaceHelper.ViewerScreenRectPosition(ren).ToJObject();
                     break;
                 case ScreenSpaceReference.None:
                     break;
@@ -66,14 +69,14 @@ namespace GameAware {
             JObject jObject = new JObject();
             switch (this.screenRectStyle) {
                 case ScreenSpaceReference.Transform:
-                    jObject["screenRect"] = ScreenSpaceHelper.ScreenPosition(transform.position).toJObject();
+                    jObject["screenRect"] = ScreenSpaceHelper.ViewerScreenPoint(transform.position).ToJObject();
                     break;
                 case ScreenSpaceReference.Collider:
                     //TODO we might want to have a better system for referencing cameras here. Both for flexibility and performance.
-                    jObject["screenRect"] = ScreenSpaceHelper.ScreenRect(col).toJObject();
+                    jObject["screenRect"] = ScreenSpaceHelper.ViewerScreenRect(col).ToJObject();
                     break;
                 case ScreenSpaceReference.Renderer:
-                    jObject["screenRect"] = ScreenSpaceHelper.ScreenRect(ren).toJObject();
+                    jObject["screenRect"] = ScreenSpaceHelper.ViewerScreenRect(ren).ToJObject();
                     break;
                 case ScreenSpaceReference.None:
                     break;

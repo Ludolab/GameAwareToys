@@ -15,6 +15,7 @@ namespace GameAware {
 
         private List<IMetaDataTrackable> keyItems = new List<IMetaDataTrackable>();
         private List<IMetaDataTrackable> tweenItems = new List<IMetaDataTrackable>();
+        private List<IMetaDataTrackable> newItems = new List<IMetaDataTrackable>();
 
         private long keyFrameNum = 0;
         private float lastKeyTime = float.NegativeInfinity;
@@ -23,14 +24,14 @@ namespace GameAware {
         private JArray tweens = new JArray();
         private JObject currentFrameData = new JObject();
 
-        [Tooltip("The URL of the Redis Middlware service")]
-        public string url = "localhost";
-        [Tooltip("The port used by the Redis Middleware service. The conventional Redis port is 6379.")]
-        public int port = 6379;
+        [Tooltip("The URL of the Middleware Redis service")]
+        public string middleWareURI = "localhost";
+        [Tooltip("The port used by the Middleware Redis service. The conventional Redis port is 6379.")]
+        public int middleWarePort = 6379;
         [Tooltip("The number of seconds used to keep the connection to the Middleware service alive")]
         public int keepAliveTime = 180;
-        [Tooltip("Password for the Redis Middleware service")]
-        public string password = "changeme";
+        [Tooltip("Password for the Middleware Redis service")]
+        public string middleWareRedisPassword = "changeme";
         [Tooltip("True = a connection to the MiddleWare service will be made on Start. False = a connection to the Middleware service must be triggered at some point later.")]
         public bool connectOnStart = false;
 
@@ -41,13 +42,14 @@ namespace GameAware {
         [Tooltip("Name of the streamer, ideally set before connection")]
         public string streamerName = "";
 
+        public JsonSerializerSettings serializerSettings;
+
         private ConnectionMultiplexer redisConn;
         private IDatabase redDb = null;
         private const string LATEST_FRAME = "latest";
         private const string START_FRAME = "start_frame";
         private const string END_FRAME = "end_frame";
         private const string PUB_SUB_CHANNEL = "server_control";
-
         
 
         public enum RecordingUpdate {
@@ -110,10 +112,10 @@ namespace GameAware {
         void InitConnection() {
             ConfigurationOptions config = new ConfigurationOptions {
                 EndPoints = {
-                    { url, port },
+                    { middleWareURI, middleWarePort },
                 },
                 KeepAlive = keepAliveTime,
-                Password = password
+                Password = middleWareRedisPassword
             };
 
             redisConn = ConnectionMultiplexer.Connect(config);
@@ -184,6 +186,8 @@ namespace GameAware {
                 {"tween_frame_rate", tweenFrameRate },
                 {"game_secs", CurrentTime },
                 {"clock_mills",DateTimeOffset.Now.ToUnixTimeMilliseconds().ToString() },
+                {"screen_width", Screen.width },
+                {"screen_height", Screen.height },
             };
             string mess = JsonConvert.SerializeObject(startMessage);
             recording = true;
@@ -258,7 +262,7 @@ namespace GameAware {
                 currentFrameData["tweens"] = tweens;
                 tweens = new JArray();
             }
-            string frameString = JsonConvert.SerializeObject(currentFrameData);
+            string frameString = JsonConvert.SerializeObject(currentFrameData, serializerSettings);
 
             WriteMetaData(keyFrameNum.ToString(), frameString, true);
             WriteMetaData(LATEST_FRAME, frameString, true);
@@ -272,6 +276,16 @@ namespace GameAware {
             if(!recording) {
                 return;
             }
+
+
+            keyItems.AddRange(newItems);
+            foreach(IMetaDataTrackable mdo in newItems) {
+                if (mdo.FrameType == MetaDataFrameType.Inbetween) {
+                    tweenItems.Add(mdo);
+                }
+            }
+            newItems.Clear();
+
             currentFrameData = new JObject {
                 {"game_time", CurrentTime },
                 {"frame", keyFrameNum }
@@ -316,10 +330,11 @@ namespace GameAware {
         }
 
         public void AddTrackableObject(IMetaDataTrackable mdo) {
-            keyItems.Add(mdo);
+            newItems.Add(mdo);
+            /*keyItems.Add(mdo);
             if (mdo.FrameType == MetaDataFrameType.Inbetween) {
                 tweenItems.Add(mdo);
-            }
+            }*/
         }
 
         public void RemoveTrackableObject(IMetaDataTrackable mdo) {

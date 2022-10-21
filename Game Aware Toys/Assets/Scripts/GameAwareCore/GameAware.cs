@@ -1,7 +1,10 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using System.Reflection;
 using Newtonsoft.Json.Linq;
+using System;
+using System.Linq;
 
 namespace GameAware {
     public enum MetaDataFrameType {
@@ -16,144 +19,205 @@ namespace GameAware {
         Renderer
     }
 
-	/// <summary>
-	/// An integer based Vector2 struct to simplify screenspace math and avoid serializing extra properties of the built in vector structs.
-	/// 
-	/// OPTIMIZATION POTENTIAL
-	/// If we stick with the paradigm of return screen space as an integer fraction of 10,000 we could probably get away with this class 
-	/// being based on shorts instead of ints if saving memory space is ever a concern.
-	/// </summary>
-	public struct IntVector2 {
-		public static IntVector2 zero = new IntVector2(0, 0);
-
-		public static IntVector2 Min(IntVector2 vec1, IntVector2 vec2) {
-			return new IntVector2(Mathf.Min(vec1.x, vec2.x), Mathf.Min(vec1.y, vec2.y));
-		}
-		public static IntVector2 Max(IntVector2 vec1, IntVector2 vec2) {
-			return new IntVector2(Mathf.Max(vec1.x, vec2.x), Mathf.Max(vec1.y, vec2.y));
-		}
-
-		public int x;
-		public int y;
-
-		public IntVector2 (int x, int y) {
-			this.x = x;
-			this.y = y;
-        }
-
-		public IntVector2(Vector2 vec) {
-			x = (int)vec.x;
-			y = (int)vec.y;
-        }
-
-		public JObject toJObject() {
-			return new JObject {
-				{"x", x },
-				{"y", y }
-			};
-        }
-	}
-
-	public struct IntRect {
-		public float x;
-		public float y;
-		public float w;
-		public float h;
-
-		public IntRect (float x, float y, float w, float h) {
-			this.x = x;
-			this.y = y;
-			this.w = w;
-			this.h = h;
-		}
-
-		public JObject toJObject() {
-			return new JObject {
-				{"x", x },
-				{"y", y },
-				{"w", w },
-				{"h", h }
-			};
-		}
-
-	}
-
 	public static class ScreenSpaceHelper {
 
-		public static IntVector2 ScreenPosition(Vector3 position) {
-			return ScreenPosition(Camera.main, position);
+		public static Vector2Int ViewerScreenPoint(Vector3 position) {
+			return ViewerScreenPoint(Camera.main, position);
 		}
 
-		public static IntVector2 ScreenPosition(MonoBehaviour gameObject) {
-			return ScreenPosition(Camera.main, gameObject.transform.position);
+		public static Vector2Int ViewerScreenPoint(MonoBehaviour gameObject) {
+			return ViewerScreenPoint(Camera.main, gameObject.transform.position);
 		}
 
-		public static IntVector2 ScreenPosition(Camera camera, MonoBehaviour gameObject) {
-			return ScreenPosition(camera, gameObject.transform.position);
+		public static Vector2Int ViewerScreenPoint(Camera camera, MonoBehaviour gameObject) {
+			return ViewerScreenPoint(camera, gameObject.transform.position);
 		}
 
-		public static IntVector2 ScreenPosition(Camera camera, Vector3 position) {
+		public static Vector2Int ViewerScreenPoint(Camera camera, Vector3 position) {
 			var screenPos = camera.WorldToScreenPoint(position);
-			return new IntVector2((int)(10000 * screenPos.x / camera.pixelWidth), (int)(10000 * screenPos.y / camera.pixelHeight));
+			return new Vector2Int((int)screenPos.x, (int)(camera.pixelHeight - screenPos.y));
 		}
 
-		private static IntVector2[] boundsHelper = new IntVector2[8];
-		private static IntVector2 min = IntVector2.zero;
-		private static IntVector2 max = IntVector2.zero;
+		private static Vector2Int[] boundsHelper = new Vector2Int[8];
+		private static Vector2Int min = Vector2Int.zero;
+		private static Vector2Int max = Vector2Int.zero;
 
-		public static IntRect ScreenRect(Camera camera, Renderer renderer) {
+		public static RectInt ViewerScreenRect(Camera camera, Renderer renderer) {
 			if (renderer == null) {
 				Debug.LogWarning("ScreenRect Called on null Renderer");
-				return new IntRect(0, 0, 0, 0);
+				return new RectInt(0, 0, 0, 0);
 			}
-			return ScreenRect(camera, renderer.bounds);
+			return ViewerScreenRect(camera, renderer.bounds);
 		}
 
-		public static IntRect ScreenRect(Renderer renderer) {
+		public static RectInt ViewerScreenRect(Renderer renderer) {
 			if (renderer == null) {
 				Debug.LogWarning("ScreenRect Called on null Renderer");
-				return new IntRect(0, 0, 0, 0);
+				return new RectInt(0, 0, 0, 0);
 			}
-			return ScreenRect(Camera.main, renderer.bounds);
+			return ViewerScreenRect(Camera.main, renderer.bounds);
 		}
 
-		public static IntRect ScreenRect(Camera camera, Collider collider) {
+		public static RectInt ViewerScreenRect(Camera camera, Collider collider) {
 			if (collider == null) {
 				Debug.LogWarning("ScreenRect Called on null Collider");
-				return new IntRect(0, 0, 0, 0);
+				return new RectInt(0, 0, 0, 0);
 			}
-			return ScreenRect(camera, collider.bounds);
+			return ViewerScreenRect(camera, collider.bounds);
 		}
 
-		public static IntRect ScreenRect(Collider collider) {
+		public static RectInt ViewerScreenRect(Collider collider) {
 			if (collider == null) {
 				Debug.LogWarning("ScreenRect Called on null Collider");
-				return new IntRect(0, 0, 0, 0);
+				return new RectInt(0, 0, 0, 0);
 			}
-			return ScreenRect(Camera.main, collider.bounds);
+			return ViewerScreenRect(Camera.main, collider.bounds);
 		}
 
-		public static IntRect ScreenRect(Camera camera, Bounds bounds) {
-			boundsHelper[0] = ScreenPosition(camera, new Vector3(bounds.min.x, bounds.max.y, bounds.min.z));  //ftl
-			boundsHelper[1] = ScreenPosition(camera, new Vector3(bounds.max.x, bounds.max.y, bounds.min.z));  //ftr
-			boundsHelper[2] = ScreenPosition(camera, new Vector3(bounds.max.x, bounds.min.y, bounds.min.z));  //fbr
-			boundsHelper[3] = ScreenPosition(camera, new Vector3(bounds.min.x, bounds.min.y, bounds.min.z));  //fbl
-			boundsHelper[4] = ScreenPosition(camera, new Vector3(bounds.min.x, bounds.max.y, bounds.max.z));  //btl
-			boundsHelper[5] = ScreenPosition(camera, new Vector3(bounds.max.x, bounds.max.y, bounds.max.z));  //btr
-			boundsHelper[6] = ScreenPosition(camera, new Vector3(bounds.max.x, bounds.min.y, bounds.max.z));  //bbr
-			boundsHelper[7] = ScreenPosition(camera, new Vector3(bounds.min.x, bounds.min.y, bounds.max.z));  //bbl
+
+
+		public static RectInt ViewerScreenRect(Camera camera, Bounds bounds) {
+			boundsHelper[0] = ViewerScreenPoint(camera, new Vector3(bounds.min.x, bounds.max.y, bounds.min.z));  //ftl
+			boundsHelper[1] = ViewerScreenPoint(camera, new Vector3(bounds.max.x, bounds.max.y, bounds.min.z));  //ftr
+			boundsHelper[2] = ViewerScreenPoint(camera, new Vector3(bounds.max.x, bounds.min.y, bounds.min.z));  //fbr
+			boundsHelper[3] = ViewerScreenPoint(camera, new Vector3(bounds.min.x, bounds.min.y, bounds.min.z));  //fbl
+			boundsHelper[4] = ViewerScreenPoint(camera, new Vector3(bounds.min.x, bounds.max.y, bounds.max.z));  //btl
+			boundsHelper[5] = ViewerScreenPoint(camera, new Vector3(bounds.max.x, bounds.max.y, bounds.max.z));  //btr
+			boundsHelper[6] = ViewerScreenPoint(camera, new Vector3(bounds.max.x, bounds.min.y, bounds.max.z));  //bbr
+			boundsHelper[7] = ViewerScreenPoint(camera, new Vector3(bounds.min.x, bounds.min.y, bounds.max.z));  //bbl
 
 			/* Get Max and Min bounding box positions */
 
 			min = boundsHelper[0];
 			max = boundsHelper[0];
 
-			foreach (IntVector2 vec in boundsHelper) {
-				min = IntVector2.Min(min, vec);
-				max = IntVector2.Max(max, vec);
+			foreach (Vector2Int vec in boundsHelper) {
+				min = Vector2Int.Min(min, vec);
+				max = Vector2Int.Max(max, vec);
 			}
 
-			return new IntRect(min.x, min.y, max.x - min.x, max.y - min.y);
+			return new RectInt(min.x, min.y, max.x - min.x, max.y - min.y);
+		}
+
+        public static Vector2Int ViewerScreenRectPosition(Camera camera, Renderer renderer) {
+            if (renderer == null) {
+                Debug.LogWarning("ScreenRect Called on null Renderer");
+                return new Vector2Int(0, 0);
+            }
+            return ViewerScreenRectPosition(camera, renderer.bounds);
+        }
+
+        public static Vector2Int ViewerScreenRectPosition(Renderer renderer) {
+            if (renderer == null) {
+                Debug.LogWarning("ScreenRect Called on null Renderer");
+                return new Vector2Int(0, 0);
+            }
+            return ViewerScreenRectPosition(Camera.main, renderer.bounds);
+        }
+
+        public static Vector2Int ViewerScreenRectPosition(Camera camera, Collider collider) {
+            if (collider == null) {
+                Debug.LogWarning("ScreenRect Called on null Collider");
+                return new Vector2Int(0, 0);
+            }
+            return ViewerScreenRectPosition(camera, collider.bounds);
+        }
+
+        public static Vector2Int ViewerScreenRectPosition(Collider collider) {
+            if (collider == null) {
+                Debug.LogWarning("ScreenRect Called on null Collider");
+                return new Vector2Int(0, 0);
+            }
+            return ViewerScreenRectPosition(Camera.main, collider.bounds);
+        }
+
+        public static Vector2Int ViewerScreenRectPosition(Camera camera, Bounds bounds) {
+            boundsHelper[0] = ViewerScreenPoint(camera, new Vector3(bounds.min.x, bounds.max.y, bounds.min.z));  //ftl
+            boundsHelper[1] = ViewerScreenPoint(camera, new Vector3(bounds.max.x, bounds.max.y, bounds.min.z));  //ftr
+            boundsHelper[2] = ViewerScreenPoint(camera, new Vector3(bounds.max.x, bounds.min.y, bounds.min.z));  //fbr
+            boundsHelper[3] = ViewerScreenPoint(camera, new Vector3(bounds.min.x, bounds.min.y, bounds.min.z));  //fbl
+            boundsHelper[4] = ViewerScreenPoint(camera, new Vector3(bounds.min.x, bounds.max.y, bounds.max.z));  //btl
+            boundsHelper[5] = ViewerScreenPoint(camera, new Vector3(bounds.max.x, bounds.max.y, bounds.max.z));  //btr
+            boundsHelper[6] = ViewerScreenPoint(camera, new Vector3(bounds.max.x, bounds.min.y, bounds.max.z));  //bbr
+            boundsHelper[7] = ViewerScreenPoint(camera, new Vector3(bounds.min.x, bounds.min.y, bounds.max.z));  //bbl
+
+            /* Get Max and Min bounding box positions */
+
+            min = boundsHelper[0];
+            max = boundsHelper[0];
+
+            foreach (Vector2Int vec in boundsHelper) {
+                min = Vector2Int.Min(min, vec);
+                max = Vector2Int.Max(max, vec);
+            }
+
+			return new Vector2Int(min.x, min.y);
+        }
+
+    }
+
+	public static class Extensions {
+		public static JObject ToJObject(this Vector2Int vec) {
+			return new JObject {
+				{"x", vec.x },
+				{"y", vec.y }
+			};
+		}
+
+		public static JObject ToJObject(this Vector2 vec) {
+			return new JObject {
+				{"x", vec.x },
+				{"y", vec.y }
+			};
+		}
+
+		public static JObject ToJObject(this Vector3 vec) {
+			return new JObject {
+				{"x",vec.x },
+				{"y",vec.y },
+				{"z",vec.z }
+			};
+        }
+
+		public static JObject ToJObject(this RectInt rect) {
+			return new JObject {
+				{"x", rect.x },
+				{"y", rect.y },
+				{"w", rect.width },
+				{"h", rect.height }
+			};
+		
+		}
+
+		public static JObject ToJObject(this MonoBehaviour mb) {
+			JObject ret = new JObject();
+			foreach (PropertyInfo pi in mb.GetType().GetProperties()){ 
+				try {
+					ret[pi.Name] = pi.GetValue(mb).ToString();
+				}
+				catch {
+					continue;
+				}
+			}
+			return ret;
+        }
+
+		public static JObject ToJObject(this GameObject gob) {
+			JObject ret = new JObject();
+			foreach (PropertyInfo pi in gob.GetType().GetProperties()) {
+				try {
+					ret[pi.Name] = pi.GetValue(gob).ToString();
+				}
+				catch {
+					continue;
+				}
+			}
+			JObject comps = new JObject();
+			foreach(MonoBehaviour comp in gob.GetComponents<MonoBehaviour>()) {
+				comps[comp.GetType().Name] = comp.ToJObject();
+            }
+			ret["Components"] = comps;
+			return ret;
 		}
 	}
 
