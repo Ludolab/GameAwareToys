@@ -20,7 +20,8 @@ public class TrackableWalker : MetaDataTrackable {
         Loop,
         LoopWithStart,
         OneWayTeleport,
-        PingPong
+        PingPong,
+        Random
     }
 
 
@@ -81,26 +82,33 @@ public class TrackableWalker : MetaDataTrackable {
             }
             walkingState = WalkingState.Waiting;
             yield return new WaitForSeconds(timeAtPoints);
-            currentWaypointDex += 1;
-            if(currentWaypointDex == waypoints.Length) {
-                switch (cycleMode) {
-                    case CycleMode.Loop:
-                    case CycleMode.LoopWithStart:
-                        currentWaypointDex %= waypoints.Length;
-                        break;
-                    case CycleMode.OneWayTeleport:
-                        transform.position = startingPoint;
-                        currentWaypointDex = 0;
-                        break;
-                    case CycleMode.PingPong:
-                        waypoints = waypoints.Reverse().ToArray();
-                        currentWaypointDex = 1;
-                        break;
+
+            if (cycleMode == CycleMode.Random) {
+                var next = Random.Range(0, waypoints.Length);
+                while(next == currentWaypointDex) {
+                    next = Random.Range(0, waypoints.Length);
+                }
+                currentWaypointDex = next;
+            }
+            else {
+                currentWaypointDex += 1;
+                if (currentWaypointDex == waypoints.Length) {
+                    switch (cycleMode) {
+                        case CycleMode.Loop:
+                        case CycleMode.LoopWithStart:
+                            currentWaypointDex %= waypoints.Length;
+                            break;
+                        case CycleMode.OneWayTeleport:
+                            transform.position = startingPoint;
+                            currentWaypointDex = 0;
+                            break;
+                        case CycleMode.PingPong:
+                            waypoints = waypoints.Reverse().ToArray();
+                            currentWaypointDex = 1;
+                            break;
+                    }
                 }
             }
-
-
-            currentWaypointDex %= waypoints.Length;
             walkingState = WalkingState.Walking;
         }
         yield break;

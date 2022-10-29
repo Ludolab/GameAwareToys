@@ -8,13 +8,11 @@ public class WalkingCamera : MonoBehaviour {
         Pan,
         Rotate,
         Zoom
-
     }
 
     [Header("Cycle Settings")]
     public float cylceTime;
     public CameraMovement movement;
-
 
     [Header("Pan Settings")]
     public float maxDistance;
@@ -23,7 +21,7 @@ public class WalkingCamera : MonoBehaviour {
     [Header("Rotate Settings")]
     public float maxAngle;
 
-    [Header("Rotate Settings")]
+    [Header("Zoom Settings")]
     public float minZoom;
     public float maxZoom;
 

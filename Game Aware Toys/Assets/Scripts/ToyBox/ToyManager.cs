@@ -5,14 +5,20 @@ using UnityEngine.SceneManagement;
 public class ToyManager : MonoBehaviour {
 
     public static ToyManager Instance { get; private set; } = null;
-
     public bool forceRunInBackground = true;
 
-    private bool menuOpen = false;
-    private Rect windowRect = new Rect(20, 20, 300, 500);
-    private Vector2 scrollPos = new Vector2(0, 0);
-    private ToyControls currentToy;
+    private string[] WindowPanels = new string[] {
+        "Toy Box",
+        "Settings",
+        "Tracked Objects",
+        "Last Key Frame"
+    };
 
+    private bool menuOpen = false;
+    private Rect windowRect = new Rect(20, 20, 400, 600);
+    private int currentPanel = 0;
+    private Vector2 scrollPos = new Vector2(0, 0);
+   
     public string[] scenes;
 
     // Start is called before the first frame update
@@ -30,21 +36,9 @@ public class ToyManager : MonoBehaviour {
             DontDestroyOnLoad(gameObject);
         }
         
-        SceneManager.activeSceneChanged += OnSceneChange;
-        FindToyControls();
-
     }
 
-    private void FindToyControls() {
-        var toy = GameObject.Find("Toy");
-        if (toy != null) {
-            currentToy = toy.GetComponent<ToyControls>();
-        }
-        else {
-            currentToy = null;
-        }
-    }
-
+  
     // Update is called once per frame
     void Update() {
         if (Input.GetKeyDown(KeyCode.Escape)) {
@@ -58,30 +52,101 @@ public class ToyManager : MonoBehaviour {
         }
     }
 
+
+    
     void WindowFunction(int windowID) {
-        scrollPos = GUILayout.BeginScrollView(scrollPos);
         GUILayout.BeginVertical();
-        GUILayout.Label(string.Format("Current Scene: {0}", SceneManager.GetActiveScene().name));
-        if (currentToy != null) {
-            currentToy.ToyGUIPanel();
+        currentPanel = GUILayout.Toolbar(currentPanel, WindowPanels);
+        scrollPos = GUILayout.BeginScrollView(scrollPos);
+        
+
+        switch (currentPanel) {
+            case 0:
+            default:
+                ToyBoxGUI();
+                break;
+            case 1:
+                MiddlwareSettingsGUI();
+                break;
+            case 2:
+                MetadataTrackerGUI();
+                break;
+            case 3:
+                LastKeyFrameGUI();
+                break;
         }
-        else {
-            GUILayout.Label("No controls for this toy");
-        }
-        GUILayout.Space(30);
+
+        GUILayout.EndScrollView();
+        GUILayout.EndVertical();
+        GUI.DragWindow(new Rect(0, 0, 10000, 20));
+    }
+
+
+    public void ToyBoxGUI() {
+        GUILayout.Label("Welcome to the Toy Box!");
+
+        GUILayout.Label("This project is designed to show off and test different capabilities of the Game Aware streaming system. Select different scenes below to explore the capabilities.");
+
         GUILayout.Label("Change Scene:");
         foreach (string sceneName in scenes) {
             if (GUILayout.Button(sceneName)) {
                 SceneManager.LoadScene(sceneName);
             }
         }
-
-        GUILayout.EndVertical();
-        GUILayout.EndScrollView();
-        GUI.DragWindow(new Rect(0, 0, 10000, 20));
     }
 
-    private void OnSceneChange(Scene current, Scene next) {
-        FindToyControls();
+    public void MiddlwareSettingsGUI() {
+        bool guiEnabledBak = GUI.enabled;
+
+        GUILayout.Label("Middleware Status");
+        GUILayout.Label(string.Format("Connected: {0}", MetaDataTracker.Instance.Connected));
+        GUILayout.Label(string.Format("Recording: {0}", MetaDataTracker.Instance.Recording));
+
+        if (MetaDataTracker.Instance.Connected) {
+            GUI.enabled = false;
+        }
+        if (GUILayout.Button("Start MetaData")) {
+            MetaDataTracker.Instance.StartMetaData();
+        }
+
+        GUILayout.Space(15);
+        GUILayout.Label("Middleware Settings");
+        MetaDataTracker.Instance.middleWareURI = LabeledInputField("Middleware URI:", MetaDataTracker.Instance.middleWareURI);
+        MetaDataTracker.Instance.middleWarePort = LabeledInputField("Middleware Port:", MetaDataTracker.Instance.middleWarePort);
+        MetaDataTracker.Instance.middleWareRedisPassword = LabeledInputField("Middleware password:", MetaDataTracker.Instance.middleWareRedisPassword);   
+
+        GUI.enabled = guiEnabledBak;
+    }
+
+
+
+    public void MetadataTrackerGUI() {
+        GUILayout.Label("CurrentTrackables:");
+        foreach(IMetaDataTrackable mdt in MetaDataTracker.Instance.CurrentTrackables) {
+            GUILayout.Label(mdt.ObjectKey);
+        }
+    }
+
+    public void LastKeyFrameGUI() {
+        GUILayout.Label(MetaDataTracker.Instance.LastKeyFrameSent);
+    }
+
+    private string LabeledInputField(string label, string value) {
+        GUILayout.BeginHorizontal();
+        GUILayout.Label(label, GUILayout.Width(75));
+        var ret = GUILayout.TextField(value);
+        GUILayout.EndHorizontal();
+        return ret;
+    }
+
+    private int LabeledInputField(string label, int value) {
+        GUILayout.BeginHorizontal();
+        GUILayout.Label(label, GUILayout.Width(75));
+        var ret = GUILayout.TextField(value.ToString());
+        GUILayout.EndHorizontal();
+        if (int.TryParse(ret, out value)) {
+            return value;
+        }
+        return 0;
     }
 }
