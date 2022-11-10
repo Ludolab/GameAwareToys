@@ -169,7 +169,7 @@ namespace GameAware {
             };
             string mess = JsonConvert.SerializeObject(endMessage);
             WriteMetaDataToMiddleware(END_FRAME, mess, false);
-            PublishMessageToMiddleware(PUB_SUB_CHANNEL, "end");
+            PublishMessageToMiddleware(PUB_SUB_CHANNEL, "end-frame");
             redDb = null;
             if (redisConn != null) {
                 redisConn.Close();
