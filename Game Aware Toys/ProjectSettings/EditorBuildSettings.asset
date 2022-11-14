@@ -20,4 +20,7 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/MovingCameraMultiWalker.unity
     guid: eaf406e9997c1d44bbe9fc4dcc8c88cf
+  - enabled: 1
+    path: Assets/Scenes/InteractiveWalker.unity
+    guid: 26ffaa6cc793b5e42b92176446e836de
   m_configObjects: {}

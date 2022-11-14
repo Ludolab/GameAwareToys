@@ -119,7 +119,7 @@ public class TrackableWalker : MetaDataTrackable {
         job["secret_name"] = secretName;
         job["color"] = color.ToString();
         job["state"] = walkingState.ToString();
-        job["next_waypoint"] = ScreenSpaceHelper.ViewerScreenPoint(waypoints[currentWaypointDex]).ToJObject();
+        job["next_waypoint"] = ScreenSpaceHelper.WorldToViewerScreenPoint(waypoints[currentWaypointDex]).ToJObject();
         return job;
     }
 }

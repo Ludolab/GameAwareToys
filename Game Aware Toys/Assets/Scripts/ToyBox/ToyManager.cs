@@ -1,4 +1,5 @@
 using GameAware;
+using System;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -18,6 +19,7 @@ public class ToyManager : MonoBehaviour {
     private Rect windowRect = new Rect(20, 20, 400, 600);
     private int currentPanel = 0;
     private Vector2 scrollPos = new Vector2(0, 0);
+    private ToyControls toyControl = null;
    
     public string[] scenes;
 
@@ -34,11 +36,17 @@ public class ToyManager : MonoBehaviour {
         else {
             Instance = this;
             DontDestroyOnLoad(gameObject);
+            SceneManager.activeSceneChanged += OnSceneChange;
+            toyControl = FindObjectOfType<ToyControls>();
         }
         
     }
 
-  
+    private void OnSceneChange(Scene arg0, Scene arg1) {
+        toyControl = FindObjectOfType<ToyControls>();
+    }
+
+
     // Update is called once per frame
     void Update() {
         if (Input.GetKeyDown(KeyCode.Escape)) {
@@ -97,6 +105,12 @@ public class ToyManager : MonoBehaviour {
 
     public void MiddlwareSettingsGUI() {
         bool guiEnabledBak = GUI.enabled;
+
+        if(toyControl != null) {
+            GUILayout.Label(toyControl.ToyName + " Settings");
+            GUILayout.Label(toyControl.Description);
+            toyControl.ToyControlGUI();
+        }
 
         GUILayout.Label("Middleware Status");
         GUILayout.Label(string.Format("Connected: {0}", MetaDataTracker.Instance.Connected));

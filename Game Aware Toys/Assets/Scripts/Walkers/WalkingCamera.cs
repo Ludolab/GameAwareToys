@@ -2,7 +2,7 @@ using System.ComponentModel.Composition;
 using UnityEngine;
 using UnityEngine.UIElements;
 
-public class WalkingCamera : MonoBehaviour {
+public class WalkingCamera : ToyControls {
 
     public enum CameraMovement {
         Pan,
@@ -122,5 +122,65 @@ public class WalkingCamera : MonoBehaviour {
             goingOut = !goingOut;
             lastSwitch = Time.time;
         }
+    }
+
+    public override void ToyControlGUI() {
+        GUILayout.Label("Current Camera Mode: " + movement.ToString());
+
+/*        [Header("Cycle Settings")]
+        public float cylceTime;
+    public CameraMovement movement;
+
+    [Header("Pan Settings")]
+    public float maxDistance;
+    public float numRotations;
+
+    [Header("Rotate Settings")]
+    public float maxAngle;
+
+    [Header("Zoom Settings")]
+    public float minZoom;
+    public float maxZoom;*/
+
+
+        switch (movement) {
+            case CameraMovement.Pan:
+            default:
+                maxDistance = LabeledSlider("Pan DistanceL",  maxDistance, 1, 7);
+                numRotations = LabeledSlider("Rotations:", numRotations, 1, 5);
+                movement = NextModeButtons(CameraMovement.Pan, CameraMovement.Rotate, CameraMovement.Zoom);
+                break;
+            case CameraMovement.Rotate:
+                maxAngle = LabeledSlider("Max Angle:", maxAngle, 10, 170);
+                movement = NextModeButtons(CameraMovement.Rotate, CameraMovement.Pan, CameraMovement.Zoom);
+                break;
+            case CameraMovement.Zoom:
+                minZoom = LabeledSlider("Min Zoom:", minZoom, 1, maxZoom);
+                maxZoom = LabeledSlider("Maz Zoom:", maxZoom, minZoom, 15);
+                movement = NextModeButtons(CameraMovement.Zoom, CameraMovement.Pan, CameraMovement.Rotate);
+                break;
+        }
+    }
+
+    private float LabeledSlider(string label, float value, float min, float max) {
+        GUILayout.BeginHorizontal();
+        GUILayout.Label(label);
+        value = GUILayout.HorizontalSlider(value, min, max);
+        GUILayout.EndHorizontal();
+        return value;
+    }
+
+    private CameraMovement NextModeButtons(CameraMovement curr, CameraMovement next1, CameraMovement next2) {
+        var ret = curr;
+        GUILayout.Label("Change Mode To:");
+        GUILayout.BeginHorizontal();
+        if (GUILayout.Button(next1.ToString())) {
+            curr = next1;
+        }
+        if (GUILayout.Button(next2.ToString())) {
+            curr = next2;
+        }
+        GUILayout.EndHorizontal();
+        return curr;
     }
 }

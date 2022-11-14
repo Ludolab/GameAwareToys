@@ -302,6 +302,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d1fb79868b8d4544195fa9df9fd9ed22, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  ToyName: Camera Control
+  Description: This toy manipulates the camera in various ways that test out handling
+    alteration to bounding boxes.
   cylceTime: 15
   movement: 2
   maxDistance: 5
