@@ -47,14 +47,14 @@ namespace GameAware {
             JObject jObject = new JObject();
             switch (this.screenRectStyle) {
                 case ScreenSpaceReference.Transform:
-                    jObject["screenRect"] = ScreenSpaceHelper.ViewerScreenPoint(transform.position).ToJObject();
+                    jObject["screenRect"] = ScreenSpaceHelper.WorldToViewerScreenPoint(transform.position).ToJObject();
                     break;
                 case ScreenSpaceReference.Collider:
                     //TODO we might want to have a better system for referencing cameras here. Both for flexibility and performance.
-                    jObject["screenRect"] = ScreenSpaceHelper.ViewerScreenRectPosition(col).ToJObject();
+                    jObject["screenRect"] = ScreenSpaceHelper.WorldBoundsToViewerScreenRectPosition(col).ToJObject();
                     break;
                 case ScreenSpaceReference.Renderer:
-                    jObject["screenRect"] = ScreenSpaceHelper.ViewerScreenRectPosition(ren).ToJObject();
+                    jObject["screenRect"] = ScreenSpaceHelper.WorldBoundsToViewerScreenRectPosition(ren).ToJObject();
                     break;
                 case ScreenSpaceReference.None:
                     break;
@@ -69,14 +69,14 @@ namespace GameAware {
             JObject jObject = new JObject();
             switch (this.screenRectStyle) {
                 case ScreenSpaceReference.Transform:
-                    jObject["screenRect"] = ScreenSpaceHelper.ViewerScreenPoint(transform.position).ToJObject();
+                    jObject["screenRect"] = ScreenSpaceHelper.WorldToViewerScreenPoint(transform.position).ToJObject();
                     break;
                 case ScreenSpaceReference.Collider:
                     //TODO we might want to have a better system for referencing cameras here. Both for flexibility and performance.
-                    jObject["screenRect"] = ScreenSpaceHelper.ViewerScreenRect(col).ToJObject();
+                    jObject["screenRect"] = ScreenSpaceHelper.WorldBoundsToViewerScreenRect(col).ToJObject();
                     break;
                 case ScreenSpaceReference.Renderer:
-                    jObject["screenRect"] = ScreenSpaceHelper.ViewerScreenRect(ren).ToJObject();
+                    jObject["screenRect"] = ScreenSpaceHelper.WorldBoundsToViewerScreenRect(ren).ToJObject();
                     break;
                 case ScreenSpaceReference.None:
                     break;
