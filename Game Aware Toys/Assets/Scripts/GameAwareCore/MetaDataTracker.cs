@@ -80,9 +80,39 @@ namespace GameAware {
             }
         } 
 
-        private float CurrentTime {
+        public float CurrentTime {
             get {
                 return updateMode == RecordingUpdate.FixedUpdate ? Time.fixedTime : Time.time;
+            }
+        }
+
+        public int CurrentTimeMills {
+            get {
+                return (int)(CurrentTime * 1000);
+            }
+        }
+
+        public float LastKeyTime {
+            get {
+                return lastKeyTime;
+            }
+        }
+
+        public int LastKeyTimeMills {
+            get {
+                return (int)(LastKeyTime * 1000);
+            }
+        }
+
+        public float LastTweenTime {
+            get {
+                return lastTweenTime;
+            }
+        }
+
+        public int LastTweenTimeMills {
+            get {
+                return (int)(LastKeyTime * 1000);
             }
         }
 
@@ -147,7 +177,7 @@ namespace GameAware {
                 {"streamer_name", streamerName },
                 {"key_frame_rate", keyFrameRate },
                 {"tween_frame_rate", tweenFrameRate },
-                {"game_time", (int)CurrentTime/1000 },
+                {"game_time", CurrentTimeMills },
                 {"clock_mills",DateTimeOffset.Now.ToUnixTimeMilliseconds().ToString() },
                 {"screen_width", Screen.width },
                 {"screen_height", Screen.height },
@@ -164,7 +194,7 @@ namespace GameAware {
             Recording = false;
             var endMessage = new JObject {
                 {"final_frame_num", keyFrameNum },
-                {"game_time", (int)CurrentTime/1000 },
+                {"game_time", CurrentTimeMills },
                 {"clock_mills",DateTimeOffset.Now.ToUnixTimeMilliseconds().ToString() },
             };
             string mess = JsonConvert.SerializeObject(endMessage);
@@ -299,7 +329,7 @@ namespace GameAware {
             newItems.Clear();
 
             currentFrameData = new JObject {
-                {"game_time", (int)CurrentTime/1000 },
+                {"game_time", CurrentTimeMills },
                 {"frame", keyFrameNum }
             };
             JObject key = new JObject();
@@ -320,8 +350,8 @@ namespace GameAware {
 
             //inbetweenNum += 1;
             JObject newInbetween = new JObject {
-                    {"dt", (int)CurrentTime/1000 - (int)lastTweenTime/1000 },
-                    {"game_time", (int)CurrentTime/1000},
+                    {"dt", CurrentTimeMills - LastKeyTimeMills },
+                    {"game_time", CurrentTimeMills },
                     //{"frame_num", inbetweenNum }
                 };
             foreach (IMetaDataTrackable mdo in tweenItems) {
