@@ -19,6 +19,9 @@ namespace GameAware {
         /// </summary>
         bool PersistAcrossScenes { get; }
 
+
+        public ScreenSpaceReference ScreenRectStyle { get; }
+
         /// <summary>
         /// A unique ID used to make sure metadata remains properly aligned between objects. In most cases this will
         /// just be a GUID but you could potentially get fancy by intentionally overwritting a common key. In principle
@@ -45,6 +48,14 @@ namespace GameAware {
         /// </summary>
         /// <returns>A JSON serialization of this GameObject.</returns>
         JObject InbetweenData();
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <returns></returns>
+        RectInt ScreenRect();
+
+
 
     }
 }

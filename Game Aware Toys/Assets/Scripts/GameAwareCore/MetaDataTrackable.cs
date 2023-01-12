@@ -86,6 +86,24 @@ namespace GameAware {
             }
             return jObject;
         }
+
+        public RectInt ScreenRect() {
+            switch (this.screenRectStyle) {
+                case ScreenSpaceReference.Transform:
+                    var pos = ScreenSpaceHelper.WorldToViewerScreenPoint(transform.position);
+                    return new RectInt(pos.x, pos.y, 0, 0);
+                case ScreenSpaceReference.Collider:
+                    //TODO we might want to have a better system for referencing cameras here. Both for flexibility and performance.
+                    return ScreenSpaceHelper.WorldBoundsToViewerScreenRect(col);
+                case ScreenSpaceReference.Renderer:
+                    return  ScreenSpaceHelper.WorldBoundsToViewerScreenRect(ren);
+                case ScreenSpaceReference.None:
+                    return new RectInt(0, 0, 0, 0);
+                default:
+                    Debug.LogWarning("Unrecognized ScreenRect Style");
+                    return new RectInt(0, 0, 0, 0);
+            }
+        }
     }
 
 }
