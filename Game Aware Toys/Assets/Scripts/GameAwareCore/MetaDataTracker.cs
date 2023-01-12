@@ -52,6 +52,9 @@ namespace GameAware {
         
         [Tooltip("True = a connection to the MiddleWare service will be made on Start. False = a connection to the Middleware service must be triggered at some point later.")]
         public bool BeginMetaDataOnStart = false;
+
+        [Tooltip("True = Snaps keyframes without trying to send them to the Middleware for local debugging purposes.")]
+        public bool LocalDebug = false;
         
         [Tooltip("Name of your game, hardcoded for the start message")]
         public string gameName = "";
@@ -166,26 +169,27 @@ namespace GameAware {
         }
 
         IEnumerator StartMetaDataCoroutine() {
-            if (!Connected) {
-                InitConnection();
+            if (!LocalDebug) {
+                if (!Connected) {
+                    InitConnection();
+                }
+                while (!Connected) {
+                    yield return new WaitForEndOfFrame();
+                }
+                var startMessage = new JObject {
+                    {"game_name", gameName },
+                    {"streamer_name", streamerName },
+                    {"key_frame_rate", keyFrameRate },
+                    {"tween_frame_rate", tweenFrameRate },
+                    {"game_time", CurrentTimeMills },
+                    {"clock_mills",DateTimeOffset.Now.ToUnixTimeMilliseconds().ToString() },
+                    {"screen_width", Screen.width },
+                    {"screen_height", Screen.height },
+                };
+                string mess = JsonConvert.SerializeObject(startMessage);
+                PublishMessageToMiddleware(PUB_SUB_CHANNEL, "start");
+                WriteMetaDataToMiddleware(START_FRAME, mess, false);
             }
-            while (!Connected) {
-                yield return new WaitForEndOfFrame();
-            }
-            var startMessage = new JObject {
-                {"game_name", gameName },
-                {"streamer_name", streamerName },
-                {"key_frame_rate", keyFrameRate },
-                {"tween_frame_rate", tweenFrameRate },
-                {"game_time", CurrentTimeMills },
-                {"clock_mills",DateTimeOffset.Now.ToUnixTimeMilliseconds().ToString() },
-                {"screen_width", Screen.width },
-                {"screen_height", Screen.height },
-            };
-            string mess = JsonConvert.SerializeObject(startMessage);
-            PublishMessageToMiddleware(PUB_SUB_CHANNEL, "start");
-            WriteMetaDataToMiddleware(START_FRAME, mess, false);
-
             Recording = true;
             SnapKeyFrame();
         }
@@ -301,10 +305,10 @@ namespace GameAware {
                 tweens = new JArray();
             }
             string frameString = JsonConvert.SerializeObject(currentFrameData);
-
+            
             WriteMetaDataToMiddleware(keyFrameNum.ToString(), frameString, true);
             WriteMetaDataToMiddleware(LATEST_FRAME, frameString, true);
-
+            
             keyFrameNum += 1;
             SnapKeyFrame();
         }
