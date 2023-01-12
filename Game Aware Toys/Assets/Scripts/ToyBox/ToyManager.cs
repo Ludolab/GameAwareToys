@@ -137,7 +137,16 @@ public class ToyManager : MonoBehaviour {
     public void MetadataTrackerGUI() {
         GUILayout.Label("CurrentTrackables:");
         foreach(IMetaDataTrackable mdt in MetaDataTracker.Instance.CurrentTrackables) {
+            
             GUILayout.Label(mdt.ObjectKey);
+            RectInt rect = mdt.ScreenRect();
+            GUILayout.BeginHorizontal();
+            GUILayout.Space(25);
+            GUILayout.Label(string.Format("x:{0}, y:{1}, w:{2}, h:{3}", rect.x, rect.y, rect.width, rect.height));
+            GUILayout.EndHorizontal();
+
+            
+
         }
     }
 

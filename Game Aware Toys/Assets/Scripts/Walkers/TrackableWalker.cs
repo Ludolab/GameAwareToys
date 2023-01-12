@@ -47,6 +47,7 @@ public class TrackableWalker : MetaDataTrackable {
     // Start is called before the first frame update
     protected override void Start() {
         base.Start();
+        screenRectStyle = ScreenSpaceReference.Renderer;
         objectKey = this.name;
         startingPoint = this.transform.position;
         secretName = Walker_Names[Random.Range(0, Walker_Names.Length - 1)];

@@ -23,6 +23,7 @@ public class InteractiveWalker : MetaDataTrackable {
     // Start is called before the first frame update
     override protected void Start() {
         base.Start();
+        this.objectKey = this.name;
         rigidbody = GetComponent<Rigidbody2D>();
         renderer = GetComponent<SpriteRenderer>();
     }
