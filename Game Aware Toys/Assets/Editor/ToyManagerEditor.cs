@@ -22,6 +22,8 @@ public class ToyManagerEditor : Editor {
                 }
             }
             manager.scenes = scenes.ToArray();
+            EditorUtility.SetDirty(manager);
+            PrefabUtility.RecordPrefabInstancePropertyModifications(manager);
         }
         EditorGUILayout.EndVertical();
         DrawDefaultInspector();

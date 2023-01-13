@@ -45,4 +45,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   forceRunInBackground: 1
-  scenes: []
+  scenes:
+  - BasicWalker
+  - MultiWalker
+  - OffCameraWalkers
+  - FairyFountainFirefly2
+  - MovingCameraMultiWalker
+  - InteractiveWalker
