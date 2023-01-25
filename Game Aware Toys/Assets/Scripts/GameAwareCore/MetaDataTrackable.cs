@@ -37,6 +37,15 @@ namespace GameAware {
             MetaDataTracker.Instance.AddTrackableObject(this);
             col = GetComponent<Collider>();
             ren = GetComponent<Renderer>();
+            if(ren != null) {
+                screenRectStyle = ScreenSpaceReference.Renderer;
+            }
+            else if(col != null) {
+                screenRectStyle = ScreenSpaceReference.Collider;
+            }
+            else {
+                screenRectStyle = ScreenSpaceReference.Transform;
+            }
         }
 
         protected virtual void OnDestroy() {
