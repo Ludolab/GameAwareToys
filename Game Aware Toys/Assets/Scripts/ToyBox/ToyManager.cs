@@ -135,6 +135,9 @@ public class ToyManager : MonoBehaviour {
 
 
     public void MetadataTrackerGUI() {
+
+        MetaDataTracker.Instance.showMockOverlay = GUILayout.Toggle(MetaDataTracker.Instance.showMockOverlay, "Show Mock Overlay");
+
         GUILayout.Label("CurrentTrackables:");
         foreach(IMetaDataTrackable mdt in MetaDataTracker.Instance.CurrentTrackables) {
             

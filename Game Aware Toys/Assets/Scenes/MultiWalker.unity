@@ -402,6 +402,23 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 5
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &810448684 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 3328021917854288885, guid: 2e78e7ee66168d74893b30202b2e6dd1, type: 3}
+  m_PrefabInstance: {fileID: 3328021917656879269}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &810448685
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 810448684}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2d7a19b82c0f4714bb04675382c51147, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &927758927
 GameObject:
   m_ObjectHideFlags: 0
@@ -2939,6 +2956,14 @@ PrefabInstance:
   m_Modification:
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 3328021917854288884, guid: 2e78e7ee66168d74893b30202b2e6dd1, type: 3}
+      propertyPath: LocalDebug
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 3328021917854288884, guid: 2e78e7ee66168d74893b30202b2e6dd1, type: 3}
+      propertyPath: BeginMetaDataOnStart
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 3328021917854288885, guid: 2e78e7ee66168d74893b30202b2e6dd1, type: 3}
       propertyPath: m_Name
       value: GameAwareTracker

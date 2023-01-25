@@ -119,6 +119,12 @@ namespace GameAware {
             }
         }
 
+        [Tooltip("A flag to display a local mock overlay showing all of the screenRects of tracked objects")]
+        public bool showMockOverlay = false;
+        public Color mockOverlayBoxColor = Color.red;
+        public Color mockOverlayTextColor = Color.black;
+        private GUIStyle mockOverlayStyle = null;
+
         public enum DebugSetting {
             None,
             All,
@@ -386,6 +392,48 @@ namespace GameAware {
 
         void OnDestroy() {
             StopMetaData();
+        }
+
+        private Texture2D MakeMockOverlayTexture(int width, int height, int border, Color color) {
+            Color[] pix = new Color[width * height];
+            for (int i = 0; i < pix.Length; i++) {
+                if (i < width * border) {
+                    pix[i] = color;
+                }
+                else if (i > width * (height - border)) {
+                    pix[i] = color;
+                }
+                else {
+                    pix[i] = Color.clear;
+                }
+                for (int p = -border + 1; p < border + 1; p++) {
+                    if ((i + p) % width == 0) {
+                        pix[i] = color;
+                        break;
+                    }
+                }
+            }
+            Texture2D tex = new Texture2D(width, height);
+            tex.SetPixels(pix);
+            tex.Apply();
+            return tex;
+        }
+
+        void OnGUI() {
+            if (showMockOverlay) {
+                if (mockOverlayStyle == null) {
+                    Texture2D tex = MakeMockOverlayTexture(64, 64, 4, mockOverlayBoxColor);
+                    mockOverlayStyle = new GUIStyle(GUI.skin.box);
+                    mockOverlayStyle.normal.background = tex;
+                    mockOverlayStyle.normal.textColor = mockOverlayTextColor;
+                    mockOverlayStyle.clipping = TextClipping.Overflow;
+                }
+                GUI.Label(new Rect(0, 0, 100, 25), "Mock Overlay Active");
+                foreach (IMetaDataTrackable mdt in MetaDataTracker.Instance.CurrentTrackables) {
+                    var screenRect = mdt.ScreenRect();
+                    GUI.Box(new Rect(screenRect.x, screenRect.y, screenRect.width, screenRect.height), mdt.ObjectKey, mockOverlayStyle);
+                }
+            }
         }
     }
 }

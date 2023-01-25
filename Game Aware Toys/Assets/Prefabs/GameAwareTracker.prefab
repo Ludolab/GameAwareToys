@@ -44,14 +44,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0cd359dca979bdc4099bd76d00b7ce98, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  url: localhost
-  port: 6379
+  middleWareURI: localhost
+  middleWarePort: 6379
   keepAliveTime: 180
-  password: changeme
-  connectOnStart: 0
-  recording: 1
+  middleWareRedisPassword: changeme
+  BeginMetaDataOnStart: 1
+  LocalDebug: 1
   gameName: 
   streamerName: 
   updateMode: 0
   keyFrameRate: 1
   tweenFrameRate: 24
+  showMockOverlay: 0
+  mockOverlayBoxColor: {r: 1, g: 0, b: 0, a: 1}
+  mockOverlayTextColor: {r: 0, g: 0, b: 0, a: 1}
+  debugSetting: 1
