@@ -64,6 +64,7 @@ public class ToyManager : MonoBehaviour {
     
     void WindowFunction(int windowID) {
         GUILayout.BeginVertical();
+        GUILayout.Label(string.Format("Current Time:{0}", MetaDataTracker.Instance.CurrentTimeMills));
         currentPanel = GUILayout.Toolbar(currentPanel, WindowPanels);
         scrollPos = GUILayout.BeginScrollView(scrollPos);
         
