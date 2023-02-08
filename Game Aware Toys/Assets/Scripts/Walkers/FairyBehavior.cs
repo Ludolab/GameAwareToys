@@ -32,7 +32,8 @@ public class FairyBehavior : MetaDataTrackable {
     // Start is called before the first frame update
     override protected void Start() {
         base.Start();
-
+        frameType = MetaDataFrameType.Inbetween;
+        screenRectStyle = ScreenSpaceReference.Renderer;
         FAIRY_COUNTER++;
         objectKey = string.Format("Fairy_{0}", FAIRY_COUNTER);
         secretName = FAIRY_NAMES[Random.Range(0, FAIRY_NAMES.Length - 1)];

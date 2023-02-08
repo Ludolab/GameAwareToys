@@ -60,10 +60,10 @@ namespace GameAware {
                     break;
                 case ScreenSpaceReference.Collider:
                     //TODO we might want to have a better system for referencing cameras here. Both for flexibility and performance.
-                    jObject["screenRect"] = ScreenSpaceHelper.WorldBoundsToViewerScreenRectPosition(col).ToJObject();
+                    jObject["screenRect"] = ScreenSpaceHelper.WorldBoundsToViewerScreenRect(col).ToJObject();
                     break;
                 case ScreenSpaceReference.Renderer:
-                    jObject["screenRect"] = ScreenSpaceHelper.WorldBoundsToViewerScreenRectPosition(ren).ToJObject();
+                    jObject["screenRect"] = ScreenSpaceHelper.WorldBoundsToViewerScreenRect(ren).ToJObject();
                     break;
                 case ScreenSpaceReference.None:
                     break;
