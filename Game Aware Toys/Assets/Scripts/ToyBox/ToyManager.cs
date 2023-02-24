@@ -52,6 +52,10 @@ public class ToyManager : MonoBehaviour {
         if (Input.GetKeyDown(KeyCode.Escape)) {
             menuOpen = !menuOpen;
         }
+        if (Input.GetKeyDown(KeyCode.Tab)) {
+            currentPanel++;
+            currentPanel %= 4;
+        }
     }
 
     private void OnGUI() {
@@ -143,10 +147,10 @@ public class ToyManager : MonoBehaviour {
         foreach(IMetaDataTrackable mdt in MetaDataTracker.Instance.CurrentTrackables) {
             
             GUILayout.Label(mdt.ObjectKey);
-            RectInt rect = mdt.ScreenRect();
+            DepthRect rect = mdt.ScreenRect();
             GUILayout.BeginHorizontal();
             GUILayout.Space(25);
-            GUILayout.Label(string.Format("x:{0}, y:{1}, w:{2}, h:{3}", rect.x, rect.y, rect.width, rect.height));
+            GUILayout.Label(string.Format("x:{0}, y:{1}, w:{2}, h:{3}, z:{4}", rect.rect.x, rect.rect.y, rect.rect.width, rect.rect.height, rect.z));
             GUILayout.EndHorizontal();
 
             

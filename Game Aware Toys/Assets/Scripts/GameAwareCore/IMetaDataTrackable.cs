@@ -53,7 +53,9 @@ namespace GameAware {
         /// 
         /// </summary>
         /// <returns></returns>
-        RectInt ScreenRect();
+        DepthRect ScreenRect();
+
+        Camera ScreenSpaceCamera { get; }
 
 
 

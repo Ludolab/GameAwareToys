@@ -59,27 +59,27 @@ public class InteractiveWalker : MetaDataTrackable {
             speed = 2;
         }
         if (Input.GetKeyDown(KeyCode.Alpha1)) {
-            var box = ScreenSpaceHelper.WorldBoundsToViewerScreenRect(renderer.bounds);
+            var box = ScreenSpaceHelper.WorldBoundsToViewerScreenRect(renderer.bounds).rect;
             box.x = 0;
             box.y = 0;
             transform.position = ScreenSpaceHelper.ViewerScreenPointToWorldPoint(box.center);
             //transform.position = ScreenSpaceHelper.ViewerScreenPointToWorldPoint(Vector2Int.zero);
         }
         if (Input.GetKeyDown(KeyCode.Alpha2)) {
-            var box = ScreenSpaceHelper.WorldBoundsToViewerScreenRect(renderer.bounds);
+            var box = ScreenSpaceHelper.WorldBoundsToViewerScreenRect(renderer.bounds).rect;
             box.x = Screen.width - box.width;
             box.y = 0;
             transform.position = ScreenSpaceHelper.ViewerScreenPointToWorldPoint(box.center);
             //transform.position = ScreenSpaceHelper.ViewerScreenPointToWorldPoint(new Vector2Int(Screen.width,0));
         }
         if (Input.GetKeyDown(KeyCode.Alpha3)) {
-            var box = ScreenSpaceHelper.WorldBoundsToViewerScreenRect(renderer.bounds);
+            var box = ScreenSpaceHelper.WorldBoundsToViewerScreenRect(renderer.bounds).rect;
             box.x = 0;
             box.y = Screen.height - box.height;
             transform.position = ScreenSpaceHelper.ViewerScreenPointToWorldPoint(box.center);
         }
         if (Input.GetKeyDown(KeyCode.Alpha4)) {
-            var box = ScreenSpaceHelper.WorldBoundsToViewerScreenRect(renderer.bounds);
+            var box = ScreenSpaceHelper.WorldBoundsToViewerScreenRect(renderer.bounds).rect;
             box.x = Screen.width - box.width;
             box.y = Screen.height - box.height;
             transform.position = ScreenSpaceHelper.ViewerScreenPointToWorldPoint(box.center);

@@ -25,6 +25,16 @@ namespace GameAware {
         protected ScreenSpaceReference screenRectStyle;
         public ScreenSpaceReference ScreenRectStyle { get { return screenRectStyle; } set { screenRectStyle = value; } }
 
+        private Camera screenSpaceCamera = null;
+        public Camera ScreenSpaceCamera {
+            set {
+                screenSpaceCamera = value;
+            }
+            get {
+                return screenSpaceCamera == null ? MetaDataTracker.Instance.ScreenSpaceCamera : screenSpaceCamera;
+            }
+        }
+
         private Collider col;
         private Renderer ren;
 
@@ -56,14 +66,14 @@ namespace GameAware {
             JObject jObject = new JObject();
             switch (this.screenRectStyle) {
                 case ScreenSpaceReference.Transform:
-                    jObject["screenRect"] = ScreenSpaceHelper.WorldToViewerScreenPoint(transform.position).ToJObject();
+                    jObject["screenRect"] = ScreenSpaceHelper.WorldToViewerScreenPoint(ScreenSpaceCamera, transform.position).ToJObject();
                     break;
                 case ScreenSpaceReference.Collider:
                     //TODO we might want to have a better system for referencing cameras here. Both for flexibility and performance.
-                    jObject["screenRect"] = ScreenSpaceHelper.WorldBoundsToViewerScreenRect(col).ToJObject();
+                    jObject["screenRect"] = ScreenSpaceHelper.WorldBoundsToViewerScreenRect(ScreenSpaceCamera, col).ToJObject();
                     break;
                 case ScreenSpaceReference.Renderer:
-                    jObject["screenRect"] = ScreenSpaceHelper.WorldBoundsToViewerScreenRect(ren).ToJObject();
+                    jObject["screenRect"] = ScreenSpaceHelper.WorldBoundsToViewerScreenRect(ScreenSpaceCamera, ren).ToJObject();
                     break;
                 case ScreenSpaceReference.None:
                     break;
@@ -78,14 +88,14 @@ namespace GameAware {
             JObject jObject = new JObject();
             switch (this.screenRectStyle) {
                 case ScreenSpaceReference.Transform:
-                    jObject["screenRect"] = ScreenSpaceHelper.WorldToViewerScreenPoint(transform.position).ToJObject();
+                    jObject["screenRect"] = ScreenSpaceHelper.WorldToViewerScreenPoint(ScreenSpaceCamera, transform.position).ToJObject();
                     break;
                 case ScreenSpaceReference.Collider:
                     //TODO we might want to have a better system for referencing cameras here. Both for flexibility and performance.
-                    jObject["screenRect"] = ScreenSpaceHelper.WorldBoundsToViewerScreenRect(col).ToJObject();
+                    jObject["screenRect"] = ScreenSpaceHelper.WorldBoundsToViewerScreenRect(ScreenSpaceCamera, col).ToJObject();
                     break;
                 case ScreenSpaceReference.Renderer:
-                    jObject["screenRect"] = ScreenSpaceHelper.WorldBoundsToViewerScreenRect(ren).ToJObject();
+                    jObject["screenRect"] = ScreenSpaceHelper.WorldBoundsToViewerScreenRect(ScreenSpaceCamera, ren).ToJObject();
                     break;
                 case ScreenSpaceReference.None:
                     break;
@@ -96,21 +106,21 @@ namespace GameAware {
             return jObject;
         }
 
-        public RectInt ScreenRect() {
+        public DepthRect ScreenRect() {
             switch (this.screenRectStyle) {
                 case ScreenSpaceReference.Transform:
-                    var pos = ScreenSpaceHelper.WorldToViewerScreenPoint(transform.position);
-                    return new RectInt(pos.x, pos.y, 0, 0);
+                    var pos = ScreenSpaceHelper.WorldToViewerScreenPoint(ScreenSpaceCamera, transform.position);
+                    return new DepthRect((int)pos.x, (int)pos.y, 0, 0, pos.z);
                 case ScreenSpaceReference.Collider:
                     //TODO we might want to have a better system for referencing cameras here. Both for flexibility and performance.
-                    return ScreenSpaceHelper.WorldBoundsToViewerScreenRect(col);
+                    return ScreenSpaceHelper.WorldBoundsToViewerScreenRect(ScreenSpaceCamera, col);
                 case ScreenSpaceReference.Renderer:
-                    return  ScreenSpaceHelper.WorldBoundsToViewerScreenRect(ren);
+                    return  ScreenSpaceHelper.WorldBoundsToViewerScreenRect(ScreenSpaceCamera, ren);
                 case ScreenSpaceReference.None:
-                    return new RectInt(0, 0, 0, 0);
+                    return DepthRect.zero;
                 default:
                     Debug.LogWarning("Unrecognized ScreenRect Style");
-                    return new RectInt(0, 0, 0, 0);
+                    return DepthRect.zero;
             }
         }
     }

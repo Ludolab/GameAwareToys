@@ -48,15 +48,15 @@ namespace GameAware {
 			return worldPoint;
 		}
 
-		public static Vector2Int WorldToViewerScreenPoint(Vector3 position) {
+		public static Vector3 WorldToViewerScreenPoint(Vector3 position) {
 			return WorldToViewerScreenPoint(Camera.main, position);
 		}
 
-		public static Vector2Int WorldToViewerScreenPoint(MonoBehaviour gameObject) {
+		public static Vector3 WorldToViewerScreenPoint(MonoBehaviour gameObject) {
 			return WorldToViewerScreenPoint(Camera.main, gameObject.transform.position);
 		}
 
-		public static Vector2Int WorldToViewerScreenPoint(Camera camera, MonoBehaviour gameObject) {
+		public static Vector3 WorldToViewerScreenPoint(Camera camera, MonoBehaviour gameObject) {
 			return WorldToViewerScreenPoint(camera, gameObject.transform.position);
 		}
 
@@ -66,48 +66,53 @@ namespace GameAware {
 		/// <param name="camera"></param>
 		/// <param name="position"></param>
 		/// <returns></returns>
-		public static Vector2Int WorldToViewerScreenPoint(Camera camera, Vector3 position) {
-			var screenPos = camera.WorldToScreenPoint(position);
-			return new Vector2Int((int)screenPos.x, (int)(camera.pixelHeight - screenPos.y));
+		public static Vector3 WorldToViewerScreenPoint(Camera camera, Vector3 position) {
+			//camera.WorldToViewportPoint(position); <- this might work better because it can provide a z depth from camera
+			//var screenPos = camera.WorldToScreenPoint(position);
+			var viewPos = camera.WorldToViewportPoint(position);
+
+			return new Vector3(camera.pixelWidth * viewPos.x,
+                               camera.pixelHeight * (1 - viewPos.y),
+							   viewPos.z);
 		}
 
-		private static Vector2Int[] boundsHelper = new Vector2Int[8];
-		private static Vector2Int min = Vector2Int.zero;
-		private static Vector2Int max = Vector2Int.zero;
+		private static Vector3[] boundsHelper = new Vector3[8];
+		private static Vector3 min = Vector3.zero;
+		private static Vector3 max = Vector3.zero;
 
-		public static RectInt WorldBoundsToViewerScreenRect(Camera camera, Renderer renderer) {
+		public static DepthRect WorldBoundsToViewerScreenRect(Camera camera, Renderer renderer) {
 			if (renderer == null) {
 				Debug.LogWarning("ScreenRect Called on null Renderer");
-				return new RectInt(0, 0, 0, 0);
+				return DepthRect.zero;
 			}
 			return WorldBoundsToViewerScreenRect(camera, renderer.bounds);
 		}
 
-		public static RectInt WorldBoundsToViewerScreenRect(Renderer renderer) {
+		public static DepthRect WorldBoundsToViewerScreenRect(Renderer renderer) {
 			if (renderer == null) {
 				Debug.LogWarning("ScreenRect Called on null Renderer");
-				return new RectInt(0, 0, 0, 0);
+				return DepthRect.zero;
 			}
 			return WorldBoundsToViewerScreenRect(Camera.main, renderer.bounds);
 		}
 
-		public static RectInt WorldBoundsToViewerScreenRect(Camera camera, Collider collider) {
+		public static DepthRect WorldBoundsToViewerScreenRect(Camera camera, Collider collider) {
 			if (collider == null) {
 				Debug.LogWarning("ScreenRect Called on null Collider");
-				return new RectInt(0, 0, 0, 0);
+				return DepthRect.zero;
 			}
 			return WorldBoundsToViewerScreenRect(camera, collider.bounds);
 		}
 
-		public static RectInt WorldBoundsToViewerScreenRect(Collider collider) {
+		public static DepthRect WorldBoundsToViewerScreenRect(Collider collider) {
 			if (collider == null) {
 				Debug.LogWarning("ScreenRect Called on null Collider");
-				return new RectInt(0, 0, 0, 0);
+				return DepthRect.zero;
 			}
 			return WorldBoundsToViewerScreenRect(Camera.main, collider.bounds);
 		}
 
-		public static RectInt WorldBoundsToViewerScreenRect(Bounds bounds) {
+		public static DepthRect WorldBoundsToViewerScreenRect(Bounds bounds) {
 			return WorldBoundsToViewerScreenRect(Camera.main, bounds);
 		}
 
@@ -117,7 +122,7 @@ namespace GameAware {
 		/// <param name="camera"></param>
 		/// <param name="bounds"></param>
 		/// <returns></returns>
-		public static RectInt WorldBoundsToViewerScreenRect(Camera camera, Bounds bounds) {
+		public static DepthRect WorldBoundsToViewerScreenRect(Camera camera, Bounds bounds) {
 			boundsHelper[0] = WorldToViewerScreenPoint(camera, new Vector3(bounds.min.x, bounds.max.y, bounds.min.z));  //ftl
 			boundsHelper[1] = WorldToViewerScreenPoint(camera, new Vector3(bounds.max.x, bounds.max.y, bounds.min.z));  //ftr
 			boundsHelper[2] = WorldToViewerScreenPoint(camera, new Vector3(bounds.max.x, bounds.min.y, bounds.min.z));  //fbr
@@ -132,18 +137,19 @@ namespace GameAware {
 			min = boundsHelper[0];
 			max = boundsHelper[0];
 
-			foreach (Vector2Int vec in boundsHelper) {
-				min = Vector2Int.Min(min, vec);
-				max = Vector2Int.Max(max, vec);
+			foreach (Vector3 vec in boundsHelper) {
+				min = Vector3.Min(min, vec);
+				max = Vector3.Max(max, vec);
 			}
 
-			return new RectInt(min.x, min.y, max.x - min.x, max.y - min.y);
+			//may need a custom rect struct that has x,y and ints and z as a float for depth
+			return new DepthRect(min.x, min.y, max.x - min.x, max.y - min.y, min.z);
 		}
 
         public static Vector2Int WorldBoundsToViewerScreenRectPosition(Camera camera, Renderer renderer) {
             if (renderer == null) {
                 Debug.LogWarning("ScreenRect Called on null Renderer");
-                return new Vector2Int(0, 0);
+				return Vector2Int.zero;
             }
             return WorldBoundsToViewerScreenRectPosition(camera, renderer.bounds);
         }
@@ -151,7 +157,7 @@ namespace GameAware {
         public static Vector2Int WorldBoundsToViewerScreenRectPosition(Renderer renderer) {
             if (renderer == null) {
                 Debug.LogWarning("ScreenRect Called on null Renderer");
-                return new Vector2Int(0, 0);
+				return Vector2Int.zero;
             }
             return WorldBoundsToViewerScreenRectPosition(Camera.main, renderer.bounds);
         }
@@ -159,7 +165,7 @@ namespace GameAware {
         public static Vector2Int WorldBoundsToViewerScreenRectPosition(Camera camera, Collider collider) {
             if (collider == null) {
                 Debug.LogWarning("ScreenRect Called on null Collider");
-                return new Vector2Int(0, 0);
+				return Vector2Int.zero;
             }
             return WorldBoundsToViewerScreenRectPosition(camera, collider.bounds);
         }
@@ -167,7 +173,7 @@ namespace GameAware {
         public static Vector2Int WorldBoundsToViewerScreenRectPosition(Collider collider) {
             if (collider == null) {
                 Debug.LogWarning("ScreenRect Called on null Collider");
-                return new Vector2Int(0, 0);
+                return Vector2Int.zero;
             }
             return WorldBoundsToViewerScreenRectPosition(Camera.main, collider.bounds);
         }
@@ -193,12 +199,12 @@ namespace GameAware {
             min = boundsHelper[0];
             max = boundsHelper[0];
 
-            foreach (Vector2Int vec in boundsHelper) {
-                min = Vector2Int.Min(min, vec);
-                max = Vector2Int.Max(max, vec);
+            foreach (Vector3 vec in boundsHelper) {
+                min = Vector3.Min(min, vec);
+                max = Vector3.Max(max, vec);
             }
 
-			return new Vector2Int(min.x, min.y);
+			return new Vector2Int((int)min.x, (int)min.y);
         }
 		
     }
@@ -268,4 +274,34 @@ namespace GameAware {
 		}
 	}
 
+	public struct DepthRect {
+		public RectInt rect;
+		public float z;
+
+		public static DepthRect zero = new DepthRect(0, 0, 0, 0, 0);
+
+		public DepthRect(int x, int y, int w, int h, float z) {
+			this.rect = new RectInt(x, y, w, h);
+			this.z = z;
+		}
+
+        public DepthRect(float x, float y, float w, float h, float z) {
+			this.rect = new RectInt((int)x, (int)y, (int)w, (int)h);
+			/*this.x = (int)x;
+            this.y = (int)y;
+            this.w = (int)w;
+            this.h = (int)h;*/
+            this.z = z;
+        }
+
+		public JObject ToJObject() {
+            return new JObject {
+                {"x", rect.x },
+                {"y", rect.y },
+                {"w", rect.width },
+                {"h", rect.height },
+                {"z", z },
+            };
+        }
+	}
 }

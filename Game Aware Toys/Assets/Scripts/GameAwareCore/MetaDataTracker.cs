@@ -119,6 +119,16 @@ namespace GameAware {
             }
         }
 
+        private Camera screenSpaceCamera = null;
+        public Camera ScreenSpaceCamera {
+            set {
+                screenSpaceCamera = value;
+            }
+            get {
+                return screenSpaceCamera == null ? Camera.main : screenSpaceCamera;
+            }
+        }
+
         [Tooltip("A flag to display a local mock overlay showing all of the screenRects of tracked objects")]
         public bool showMockOverlay = false;
         public Color mockOverlayBoxColor = Color.red;
@@ -431,7 +441,10 @@ namespace GameAware {
                 GUI.Label(new Rect(0, 0, 100, 25), "Mock Overlay Active");
                 foreach (IMetaDataTrackable mdt in MetaDataTracker.Instance.CurrentTrackables) {
                     var screenRect = mdt.ScreenRect();
-                    GUI.Box(new Rect(screenRect.x, screenRect.y, screenRect.width, screenRect.height), mdt.ObjectKey, mockOverlayStyle);
+                    if(screenRect.z < 0) {
+                        continue;
+                    }
+                    GUI.Box(new Rect(screenRect.rect.x, screenRect.rect.y, screenRect.rect.width, screenRect.rect.height), mdt.ObjectKey, mockOverlayStyle);
                 }
             }
         }
