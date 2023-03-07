@@ -7,6 +7,7 @@ using System;
 using StackExchange.Redis;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using System.Security.Cryptography;
 
 namespace GameAware {
 
@@ -134,6 +135,8 @@ namespace GameAware {
         public Color mockOverlayBoxColor = Color.red;
         public Color mockOverlayTextColor = Color.black;
         private GUIStyle mockOverlayStyle = null;
+
+        private Dictionary<string, DepthRect> mockRects = new Dictionary<string, DepthRect>();
 
         public enum DebugSetting {
             None,
@@ -347,6 +350,12 @@ namespace GameAware {
                 }
             }
             newItems.Clear();
+            if (showMockOverlay) {
+                mockRects.Clear();
+                foreach (IMetaDataTrackable mdo in keyItems) {
+                    mockRects[mdo.ObjectKey] = mdo.ScreenRect();
+                }
+            }
 
             currentFrameData = new JObject {
                 {"game_time", CurrentTimeMills },
@@ -364,6 +373,13 @@ namespace GameAware {
         }
 
         private void SnapTweenFrame() {
+            if (showMockOverlay) {
+                mockRects.Clear();
+                foreach(IMetaDataTrackable mdo in keyItems) {
+                    mockRects[mdo.ObjectKey] = mdo.ScreenRect();
+                }
+            }
+
             if (tweenItems.Count == 0 || !Recording) {
                 return;
             }
@@ -389,6 +405,7 @@ namespace GameAware {
         void OnSceneChange(Scene current, Scene next) {
             keyItems = keyItems.Where(md => md.PersistAcrossScenes).ToList();
             tweenItems = tweenItems.Where(md => md.PersistAcrossScenes).ToList();
+            mockOverlayStyle = null;
         }
 
         public void AddTrackableObject(IMetaDataTrackable mdo) {
@@ -439,12 +456,19 @@ namespace GameAware {
                     mockOverlayStyle.clipping = TextClipping.Overflow;
                 }
                 GUI.Label(new Rect(0, 0, 100, 25), "Mock Overlay Active");
-                foreach (IMetaDataTrackable mdt in MetaDataTracker.Instance.CurrentTrackables) {
+                /*foreach (IMetaDataTrackable mdt in MetaDataTracker.Instance.CurrentTrackables) {
                     var screenRect = mdt.ScreenRect();
                     if(screenRect.z < 0) {
                         continue;
                     }
                     GUI.Box(new Rect(screenRect.rect.x, screenRect.rect.y, screenRect.rect.width, screenRect.rect.height), mdt.ObjectKey, mockOverlayStyle);
+                }*/
+                foreach(string key in mockRects.Keys) {
+                    var screenRect = mockRects[key];
+                    if (screenRect.z < 0) {
+                        continue;
+                    }
+                    GUI.Box(new Rect(screenRect.rect.x, screenRect.rect.y, screenRect.rect.width, screenRect.rect.height), key, mockOverlayStyle);
                 }
             }
         }
