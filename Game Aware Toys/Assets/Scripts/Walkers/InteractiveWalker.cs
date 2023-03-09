@@ -6,6 +6,7 @@ using Newtonsoft.Json.Linq;
 using static TrackableWalker;
 using System.Drawing;
 
+[RequireComponent(typeof(Rigidbody2D))]
 public class InteractiveWalker : MetaDataTrackable {
 
     [System.Serializable]
@@ -88,7 +89,9 @@ public class InteractiveWalker : MetaDataTrackable {
 
     public override JObject KeyFrameData() {
         JObject job = base.KeyFrameData();
-        job["color"] = colors[currentColor].color.ToString();
+        if (colors.Length > 0) {
+            job["color"] = colors[currentColor].color.ToString();
+        }
         job["speed"] = speed;
         return job;
     }
