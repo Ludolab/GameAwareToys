@@ -5,6 +5,9 @@ using Newtonsoft.Json.Linq;
 
 namespace GameAware {
     public interface IMetaDataTrackable {
+
+        public const string SCREEN_RECT_KEY = "screenRect";
+
         /// <summary>
         /// This defines the types of frames where this object should be tracked. KeyFrames are recorded at regular 
         /// intervals (1 second by default) and contain current information for all objects. Inbetweens are the frames
@@ -18,9 +21,6 @@ namespace GameAware {
         /// DontDestroyOnLoad, maybe there's a way to just read that property?
         /// </summary>
         bool PersistAcrossScenes { get; }
-
-
-        public ScreenSpaceReference ScreenRectStyle { get; }
 
         /// <summary>
         /// A unique ID used to make sure metadata remains properly aligned between objects. In most cases this will
@@ -54,10 +54,5 @@ namespace GameAware {
         /// </summary>
         /// <returns></returns>
         DepthRect ScreenRect();
-
-        Camera ScreenSpaceCamera { get; }
-
-
-
     }
 }

@@ -66,14 +66,14 @@ namespace GameAware {
             JObject jObject = new JObject();
             switch (this.screenRectStyle) {
                 case ScreenSpaceReference.Transform:
-                    jObject["screenRect"] = ScreenSpaceHelper.WorldToViewerScreenPoint(ScreenSpaceCamera, transform.position).ToJObject();
+                    jObject[IMetaDataTrackable.SCREEN_RECT_KEY] = ScreenSpaceHelper.WorldToViewerScreenPoint(ScreenSpaceCamera, transform.position).ToJObject();
                     break;
                 case ScreenSpaceReference.Collider:
                     //TODO we might want to have a better system for referencing cameras here. Both for flexibility and performance.
-                    jObject["screenRect"] = ScreenSpaceHelper.WorldBoundsToViewerScreenRect(ScreenSpaceCamera, col).ToJObject();
+                    jObject[IMetaDataTrackable.SCREEN_RECT_KEY] = ScreenSpaceHelper.WorldBoundsToViewerScreenRect(ScreenSpaceCamera, col).ToJObject();
                     break;
                 case ScreenSpaceReference.Renderer:
-                    jObject["screenRect"] = ScreenSpaceHelper.WorldBoundsToViewerScreenRect(ScreenSpaceCamera, ren).ToJObject();
+                    jObject[IMetaDataTrackable.SCREEN_RECT_KEY] = ScreenSpaceHelper.WorldBoundsToViewerScreenRect(ScreenSpaceCamera, ren).ToJObject();
                     break;
                 case ScreenSpaceReference.None:
                     break;
@@ -88,14 +88,14 @@ namespace GameAware {
             JObject jObject = new JObject();
             switch (this.screenRectStyle) {
                 case ScreenSpaceReference.Transform:
-                    jObject["screenRect"] = ScreenSpaceHelper.WorldToViewerScreenPoint(ScreenSpaceCamera, transform.position).ToJObject();
+                    jObject[IMetaDataTrackable.SCREEN_RECT_KEY] = ScreenSpaceHelper.WorldToViewerScreenPoint(ScreenSpaceCamera, transform.position).ToJObject();
                     break;
                 case ScreenSpaceReference.Collider:
                     //TODO we might want to have a better system for referencing cameras here. Both for flexibility and performance.
-                    jObject["screenRect"] = ScreenSpaceHelper.WorldBoundsToViewerScreenRect(ScreenSpaceCamera, col).ToJObject();
+                    jObject[IMetaDataTrackable.SCREEN_RECT_KEY] = ScreenSpaceHelper.WorldBoundsToViewerScreenRect(ScreenSpaceCamera, col).ToJObject();
                     break;
                 case ScreenSpaceReference.Renderer:
-                    jObject["screenRect"] = ScreenSpaceHelper.WorldBoundsToViewerScreenRect(ScreenSpaceCamera, ren).ToJObject();
+                    jObject[IMetaDataTrackable.SCREEN_RECT_KEY] = ScreenSpaceHelper.WorldBoundsToViewerScreenRect(ScreenSpaceCamera, ren).ToJObject();
                     break;
                 case ScreenSpaceReference.None:
                     break;
