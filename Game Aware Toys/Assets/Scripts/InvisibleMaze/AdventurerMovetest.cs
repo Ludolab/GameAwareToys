@@ -14,10 +14,15 @@ namespace InvisibleMaze {
             adventurer = GetComponentInParent<Adventurer>();
         }
 
-
         private void OnTriggerEnter2D(Collider2D other) {
             if (other.gameObject.CompareTag("Wall")) {
                 adventurer.movable[(int)direction] = false;
+            }
+            if (other.gameObject.CompareTag("Gem")) {
+                adventurer.pickables[(int)direction] = other.gameObject.GetComponent<GemBehavior>();
+            }
+            if(other.gameObject.CompareTag("Pedestal")) {
+                adventurer.placables[(int)direction] = other.gameObject.GetComponent<PedestalBehavior>();
             }
         }
 
@@ -25,11 +30,12 @@ namespace InvisibleMaze {
             if (other.gameObject.CompareTag("Wall")) {
                 adventurer.movable[(int)direction] = true;
             }
-        }
-
-        // Update is called once per frame
-        void Update() {
-
+            if (other.gameObject.CompareTag("Gem")) {
+                adventurer.pickables[(int)direction] = null;
+            }
+            if (other.gameObject.CompareTag("Pedestal")) {
+                adventurer.placables[(int)direction] = null;
+            }
         }
     }
 }

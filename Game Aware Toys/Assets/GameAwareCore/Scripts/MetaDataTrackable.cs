@@ -36,6 +36,7 @@ namespace GameAware {
         }
 
         private Collider col;
+        private Collider2D col2d;
         private Renderer ren;
 
 
@@ -44,18 +45,26 @@ namespace GameAware {
         }
 
         protected virtual void Start() {
-            MetaDataTracker.Instance.AddTrackableObject(this);
             col = GetComponent<Collider>();
             ren = GetComponent<Renderer>();
-            if(ren != null) {
-                screenRectStyle = ScreenSpaceReference.Renderer;
+            col2d = GetComponent<Collider2D>();
+            if (screenRectStyle == ScreenSpaceReference.NotSet) {
+                if (ren != null) {
+                    screenRectStyle = ScreenSpaceReference.Renderer;
+                }
+                else if (col != null) {
+                    screenRectStyle = ScreenSpaceReference.Collider;
+                }
+                else { 
+                    screenRectStyle = ScreenSpaceReference.Transform;
+                }
             }
-            else if(col != null) {
-                screenRectStyle = ScreenSpaceReference.Collider;
-            }
-            else {
-                screenRectStyle = ScreenSpaceReference.Transform;
-            }
+            StartCoroutine(RegisterTrackable());
+        }
+
+        protected virtual IEnumerator RegisterTrackable() {
+            MetaDataTracker.Instance.AddTrackableObject(this);
+            yield break;
         }
 
         protected virtual void OnDestroy() {
@@ -63,57 +72,51 @@ namespace GameAware {
         }
 
         public virtual JObject InbetweenData() {
-            JObject jObject = new JObject();
             switch (this.screenRectStyle) {
                 case ScreenSpaceReference.Transform:
-                    jObject[IMetaDataTrackable.SCREEN_RECT_KEY] = ScreenSpaceHelper.WorldToViewerScreenPoint(ScreenSpaceCamera, transform.position).ToJObject();
-                    break;
                 case ScreenSpaceReference.Collider:
-                    //TODO we might want to have a better system for referencing cameras here. Both for flexibility and performance.
-                    jObject[IMetaDataTrackable.SCREEN_RECT_KEY] = ScreenSpaceHelper.WorldBoundsToViewerScreenRect(ScreenSpaceCamera, col).ToJObject();
-                    break;
                 case ScreenSpaceReference.Renderer:
-                    jObject[IMetaDataTrackable.SCREEN_RECT_KEY] = ScreenSpaceHelper.WorldBoundsToViewerScreenRect(ScreenSpaceCamera, ren).ToJObject();
-                    break;
+                    return new JObject {
+                        { IMetaDataTrackable.SCREEN_RECT_KEY, ScreenRect().ToJObject() }
+                    };
+
                 case ScreenSpaceReference.None:
-                    break;
+                    return new JObject();
                 default:
-                    Debug.LogWarning("Unrecognized ScreenRect Style");
-                    break;
+                    Debug.LogWarningFormat("MetaDataTrackable has ScreenRectStyle:{0}", screenRectStyle);
+                    return new JObject();
             }
-            return jObject;
         }
 
         public virtual JObject KeyFrameData() {
-            JObject jObject = new JObject();
             switch (this.screenRectStyle) {
                 case ScreenSpaceReference.Transform:
-                    jObject[IMetaDataTrackable.SCREEN_RECT_KEY] = ScreenSpaceHelper.WorldToViewerScreenPoint(ScreenSpaceCamera, transform.position).ToJObject();
-                    break;
                 case ScreenSpaceReference.Collider:
-                    //TODO we might want to have a better system for referencing cameras here. Both for flexibility and performance.
-                    jObject[IMetaDataTrackable.SCREEN_RECT_KEY] = ScreenSpaceHelper.WorldBoundsToViewerScreenRect(ScreenSpaceCamera, col).ToJObject();
-                    break;
                 case ScreenSpaceReference.Renderer:
-                    jObject[IMetaDataTrackable.SCREEN_RECT_KEY] = ScreenSpaceHelper.WorldBoundsToViewerScreenRect(ScreenSpaceCamera, ren).ToJObject();
-                    break;
+                    return new JObject {
+                        { IMetaDataTrackable.SCREEN_RECT_KEY, ScreenRect().ToJObject() }
+                    };
+                    
                 case ScreenSpaceReference.None:
-                    break;
+                    return new JObject();
                 default:
-                    Debug.LogWarning("Unrecognized ScreenRect Style");
-                    break;
+                    Debug.LogWarningFormat("MetaDataTrackable has ScreenRectStyle:{0}", screenRectStyle);
+                    return new JObject();
             }
-            return jObject;
         }
 
-        public DepthRect ScreenRect() {
+        public virtual DepthRect ScreenRect() {
             switch (this.screenRectStyle) {
                 case ScreenSpaceReference.Transform:
                     var pos = ScreenSpaceHelper.WorldToViewerScreenPoint(ScreenSpaceCamera, transform.position);
                     return new DepthRect((int)pos.x, (int)pos.y, 0, 0, pos.z);
                 case ScreenSpaceReference.Collider:
-                    //TODO we might want to have a better system for referencing cameras here. Both for flexibility and performance.
-                    return ScreenSpaceHelper.WorldBoundsToViewerScreenRect(ScreenSpaceCamera, col);
+                    if (col2d != null) {
+                       return ScreenSpaceHelper.WorldBoundsToViewerScreenRect(ScreenSpaceCamera, col2d);
+                    }
+                    else {
+                        return ScreenSpaceHelper.WorldBoundsToViewerScreenRect(ScreenSpaceCamera, col);
+                    }
                 case ScreenSpaceReference.Renderer:
                     return  ScreenSpaceHelper.WorldBoundsToViewerScreenRect(ScreenSpaceCamera, ren);
                 case ScreenSpaceReference.None:

@@ -27,7 +27,7 @@ namespace InvisibleMaze {
             return job;
         }
 
-        public void Held() {
+        public void PickUp() {
             colider.enabled = false;
         }
 

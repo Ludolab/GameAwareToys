@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Tilemaps;
 using System.Linq;
-using UnityEditorInternal;
 
 namespace InvisibleMaze {
     public enum TileType {
@@ -13,7 +12,7 @@ namespace InvisibleMaze {
 
     public enum GemColors {
         Blue,
-        Orange,
+        Green,
         Purple,
         Yellow
     }
@@ -22,7 +21,8 @@ namespace InvisibleMaze {
         Up = 0,
         Down = 1,
         Left = 2,
-        Right = 3
+        Right = 3,
+        Center = 4
     }
 
     public class MazeManager : ToyControls {
@@ -34,7 +34,9 @@ namespace InvisibleMaze {
         }
 
         [Header("Maze Settings")]
-        public Vector3Int mazeStartPosition;
+        public Vector3Int mazePosition;
+        public int nearGemSpawnY;
+        public int farGemSpawnY;
         public int mazeWidth;
         public int mazeHeight;
 
@@ -43,19 +45,105 @@ namespace InvisibleMaze {
         public Tile safeTile;
         public Tile riskyTile;
 
+        public Tile itemStand;
+        public GameObject[] gemPrefabs;
+
+        public Vector3Int leftDoorPosition;
+        public Vector3Int rightDoorPosition;
+        public Tile closedDoorLeft;
+        public Tile closedDoorRight;
+        public Tile openDoorLeft;
+        public Tile openDoorRight;
+
+
         private Tilemap mazeMap;
+        private Tilemap decorationMap;
         private Grid grid;
         private MazeTile[,] maze;
+        private PedestalBehavior[] pedestals;
 
         // Start is called before the first frame update
         void Start() {
             Instance = this;
-            GameObject mazeMapObj = GameObject.Find("MazeMap");
-            mazeMap = mazeMapObj.GetComponent<Tilemap>();
-            GameObject gridObj = GameObject.Find("Grid");
-            grid = gridObj.GetComponent<Grid>();
-            maze = GenerateMaze(mazeWidth, mazeHeight);
+            mazeMap = GameObject.Find("MazeMap").GetComponent<Tilemap>();
+            decorationMap = GameObject.Find("Decorations").GetComponent<Tilemap>();
+            grid = GameObject.Find("Grid").GetComponent<Grid>();           
+
+            //shuffle colors
+            gemPrefabs = gemPrefabs.OrderBy(x => Random.value).ToArray();
+
+            //determine near and far gem spawn points
+            Vector2Int nearGemPos = new Vector2Int(Random.Range(2, mazeWidth - 2), nearGemSpawnY);
+            Vector2Int farGemPos = new Vector2Int(Random.Range(2, mazeWidth - 2), farGemSpawnY);
+
+            //generate 2 random gem positions within the maze
+            List<Vector2Int> gemSeeds = new List<Vector2Int> {
+                new Vector2Int(Random.Range(2,mazeWidth-2), Random.Range(2, mazeHeight - 2)),
+                new Vector2Int(Random.Range(2,mazeWidth-2), Random.Range(2, mazeHeight - 2)),
+            };
+
+            while (gemSeeds[0] == gemSeeds[1]) {
+                gemSeeds[1] = new Vector2Int(Random.Range(2, mazeWidth - 2), Random.Range(2, mazeHeight - 2));
+            }
+
+            //pass the random positions into the maze generation as additional seeds
+            maze = GenerateMaze(mazeWidth, mazeHeight, gemSeeds);
             UpdateMazeTiles();
+
+            //put item stands at each of the spawn points
+            decorationMap.SetTile((Vector3Int)nearGemPos + mazePosition, itemStand);
+            decorationMap.SetTile((Vector3Int)farGemPos + mazePosition, itemStand);
+            foreach(Vector2Int pos in gemSeeds) {
+                decorationMap.SetTile((Vector3Int)pos + mazePosition, itemStand);
+            }
+
+            List<GemBehavior> gems = new List<GemBehavior> {
+                Instantiate(gemPrefabs[0], grid.CellToWorld((Vector3Int)nearGemPos + mazePosition) + mazeMap.tileAnchor, Quaternion.identity).GetComponent<GemBehavior>(),
+                Instantiate(gemPrefabs[1], grid.CellToWorld((Vector3Int)gemSeeds[0] + mazePosition) + mazeMap.tileAnchor, Quaternion.identity).GetComponent<GemBehavior>(),
+                Instantiate(gemPrefabs[2], grid.CellToWorld((Vector3Int) gemSeeds[1] + mazePosition) + mazeMap.tileAnchor, Quaternion.identity).GetComponent<GemBehavior>(),
+                Instantiate(gemPrefabs[3], grid.CellToWorld((Vector3Int) farGemPos + mazePosition) + mazeMap.tileAnchor, Quaternion.identity).GetComponent<GemBehavior>()
+            };
+
+            pedestals = FindObjectsOfType<PedestalBehavior>();
+
+            pedestals = pedestals.OrderBy(x => Random.value).ToArray();
+
+            for (int i = 0; i < 4; i++) {
+                try {
+                    pedestals[i].targetGem = gems[i];
+                }
+                catch (System.IndexOutOfRangeException e) {
+                    Debug.LogErrorFormat("Tried to get index:{0}", i);
+                    throw e;
+                }
+
+            }
+
+            //actually instantiate the gems
+            //collect the pedestals
+            //randomly assign the colors to the pedestals
+        }
+
+        // function check win
+        // if win swap the door tiles to open, maybe instatiate a prefab?
+        // once player walks through open doors reload scene
+
+        void CheckWin() {
+            bool win = true;
+            foreach (PedestalBehavior pedestal in pedestals) {
+                if (pedestal.targetGem != pedestal.slottedGem) {
+                    win = false;
+                    break;
+                }
+            }
+            if(win) {
+                decorationMap.SetTile(leftDoorPosition, openDoorLeft);
+                decorationMap.SetTile(rightDoorPosition, openDoorRight);
+            }
+            else {
+                decorationMap.SetTile(leftDoorPosition, closedDoorLeft);
+                decorationMap.SetTile(rightDoorPosition, closedDoorRight);
+            }
         }
 
 
@@ -63,18 +151,17 @@ namespace InvisibleMaze {
             for (int x = 0; x < mazeWidth; x++) {
                 for (int y = 0; y < mazeHeight; y++) {
                     if (!maze[x, y].exposed) {
-                        mazeMap.SetTile(new Vector3Int(x, y, 0) + mazeStartPosition, riskyTile);
+                        mazeMap.SetTile(new Vector3Int(x, y, 0) + mazePosition, riskyTile);
                     }
                     else {
-                        mazeMap.SetTile(new Vector3Int(x, y, 0) + mazeStartPosition, maze[x, y].type == TileType.Safe ? safeTile : dangerTile);
+                        mazeMap.SetTile(new Vector3Int(x, y, 0) + mazePosition, maze[x, y].type == TileType.Safe ? safeTile : dangerTile);
                     }
                 }
             }
         }
 
         public MazeTile VisitMazeTile(Vector3 worldPosition) {
-            Vector3 cellPos = mazeMap.WorldToCell(worldPosition) - mazeStartPosition;
-            //Debug.LogFormat("VisitMazeTile: {0}", cellPos);
+            Vector3 cellPos = mazeMap.WorldToCell(worldPosition) - mazePosition;
             if (cellPos.x >= 0 && cellPos.x < maze.GetLength(0) && cellPos.y >= 0 && cellPos.y < maze.GetLength(1)) {
                 MazeTile tile = maze[(int)cellPos.x, (int)cellPos.y];
                 tile.exposed = true;
@@ -86,11 +173,22 @@ namespace InvisibleMaze {
             }
         }
 
+
+        public MazeTile CheckTile(Vector3 worldPosition) {
+            Vector3 cellPos = mazeMap.WorldToCell(worldPosition) - mazePosition;
+            if (cellPos.x >= 0 && cellPos.x < maze.GetLength(0) && cellPos.y >= 0 && cellPos.y < maze.GetLength(1)) {
+                return maze[(int)cellPos.x, (int)cellPos.y];
+            }
+            else {
+                return null;
+            }
+        }
+
         public override void ToyControlGUI() {
-            if (GUILayout.Button("Regenerate Maze")) {
+           /* if (GUILayout.Button("Regenerate Maze")) {
                 maze = GenerateMaze(mazeWidth, mazeHeight);
                 UpdateMazeTiles();
-            }
+            }*/
             GUILayout.BeginHorizontal();
             if (GUILayout.Button("Expose Maze")) {
                 foreach (MazeTile tile in maze) {
@@ -122,7 +220,7 @@ namespace InvisibleMaze {
         }
 
         public Bounds GetTileBounds(Vector2Int pos) {
-            Vector3Int pos3 = new Vector3Int(pos.x, pos.y, 0) + mazeStartPosition;
+            Vector3Int pos3 = new Vector3Int(pos.x, pos.y, 0) + mazePosition;
             Bounds bound = grid.GetBoundsLocal(pos3);
             Vector3 worldPost = grid.GetCellCenterWorld(pos3);
             return new Bounds(worldPost, bound.size);
@@ -138,8 +236,9 @@ namespace InvisibleMaze {
         /// </summary>
         /// <param name="width"></param>
         /// <param name="height"></param>
+        /// <param name="additionalSeeds"></param>
         /// <returns></returns>
-        private MazeTile[,] GenerateMaze(int width, int height) {
+        private MazeTile[,] GenerateMaze(int width, int height, List<Vector2Int> additionalSeeds) {
             MazeTile[,] maze = new MazeTile[width, height];
             HashSet<Vector2Int> visted = new HashSet<Vector2Int>();
             HashSet<Vector2Int> unvisted = new HashSet<Vector2Int>();
@@ -158,6 +257,7 @@ namespace InvisibleMaze {
 
             //add the first cell to the stack
             List<Vector2Int> stack = new List<Vector2Int> { seed1, seed2 };
+            stack.AddRange(additionalSeeds);
 
             //while the stack is not empty
             while (stack.Count > 0) {
@@ -200,33 +300,20 @@ namespace InvisibleMaze {
             }
 
             //flood fill the maze to test is seed1 is connected to seed2
-            HashSet<Vector2Int> bridgeA = FloodFillMaze(maze, seed1);
-            HashSet<Vector2Int> bridgeB = FloodFillMaze(maze, seed2);
-            if (bridgeA.Intersect(bridgeB).Count() == 0) {
-                Debug.Log("Bridges not connected, adding a fix");
-                // find the closest cells and connect them
-                Vector2Int closestA = bridgeA.ToList()[0];
-                Vector2Int closestB = bridgeB.ToList()[0];
-                foreach (Vector2Int a in bridgeA) {
-                    foreach (Vector2Int b in bridgeB) {
-                        if (Vector2Int.Distance(a, b) < Vector2Int.Distance(closestA, closestB)) {
-                            closestA = a;
-                            closestB = b;
-                        }
-                    }
-                }
-                Vector2Int min = Vector2Int.Min(closestA, closestB);
-                Vector2Int max = Vector2Int.Max(closestA, closestB);
-                for (int x = min.x; x <= max.x; x++) {
-                    maze[x, min.y].type = TileType.Safe;
-                }
-                for (int y = min.y; y <= max.y; y++) {
-                    maze[min.x, y].type = TileType.Safe;
-                }
-
-            }
+            HashSet<Vector2Int> bridgeA = FloodFillBridge(maze, seed1);
+            HashSet<Vector2Int> bridgeB = FloodFillBridge(maze, seed2);
+            bridgeA = ConnectBridges(bridgeA, bridgeB, maze);
             maze[seed1.x, seed1.y].exposed = true;
             maze[seed2.x, seed2.y].exposed = true;
+
+
+            foreach (Vector2Int seed in additionalSeeds) {
+                HashSet<Vector2Int> seedBridge = FloodFillBridge(maze, seed);
+                bridgeA = ConnectBridges(bridgeA, seedBridge, maze);
+                maze[seed.x, seed.y].exposed = true;
+            }
+            
+
             return maze;
         }
 
@@ -236,7 +323,7 @@ namespace InvisibleMaze {
         /// <param name="maze"></param>
         /// <param name="seed"></param>
         /// <returns></returns>
-        private HashSet<Vector2Int> FloodFillMaze(MazeTile[,] maze, Vector2Int seed) {
+        private HashSet<Vector2Int> FloodFillBridge(MazeTile[,] maze, Vector2Int seed) {
             HashSet<Vector2Int> visited = new HashSet<Vector2Int>();
             Queue<Vector2Int> toVisit = new Queue<Vector2Int>();
             toVisit.Enqueue(seed);
@@ -267,6 +354,32 @@ namespace InvisibleMaze {
             }
 
             return visited;
+        }
+
+        public HashSet<Vector2Int> ConnectBridges(HashSet<Vector2Int> bridgeA, HashSet<Vector2Int> bridgeB, MazeTile[,] maze) {
+            if (bridgeA.Intersect(bridgeB).Count() == 0) {
+                Debug.Log("Bridges not connected, adding a fix");
+                // find the closest cells and connect them
+                Vector2Int closestA = bridgeA.ToList()[0];
+                Vector2Int closestB = bridgeB.ToList()[0];
+                foreach (Vector2Int a in bridgeA) {
+                    foreach (Vector2Int b in bridgeB) {
+                        if (Vector2Int.Distance(a, b) < Vector2Int.Distance(closestA, closestB)) {
+                            closestA = a;
+                            closestB = b;
+                        }
+                    }
+                }
+                Vector2Int min = Vector2Int.Min(closestA, closestB);
+                Vector2Int max = Vector2Int.Max(closestA, closestB);
+                for (int x = min.x; x <= max.x; x++) {
+                    maze[x, min.y].type = TileType.Safe;
+                }
+                for (int y = min.y; y <= max.y; y++) {
+                    maze[min.x, y].type = TileType.Safe;
+                }
+            }
+            return new HashSet<Vector2Int>(bridgeA.Union(bridgeB));
         }
 
 

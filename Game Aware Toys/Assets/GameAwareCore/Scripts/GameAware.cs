@@ -13,10 +13,11 @@ namespace GameAware {
     }
 
     public enum ScreenSpaceReference {
-        None,
+        NotSet,
+		None,
         Transform,
         Collider,
-        Renderer
+        Renderer,
     }
 
 	public static class ScreenSpaceHelper {
@@ -112,7 +113,25 @@ namespace GameAware {
 			return WorldBoundsToViewerScreenRect(Camera.main, collider.bounds);
 		}
 
-		public static DepthRect WorldBoundsToViewerScreenRect(Bounds bounds) {
+		public static DepthRect WorldBoundsToViewerScreenRect(Camera camera, Collider2D collider) {
+			if(collider == null) {
+                Debug.LogWarning("ScreenRect Called on null Collider");
+                return DepthRect.zero;
+            }
+			return WorldBoundsToViewerScreenRect(camera, collider.bounds);
+		}
+
+        public static DepthRect WorldBoundsToViewerScreenRect(Collider2D collider) {
+            if (collider == null) {
+                Debug.LogWarning("ScreenRect Called on null Collider");
+                return DepthRect.zero;
+            }
+			return WorldBoundsToViewerScreenRect(Camera.main, collider.bounds);
+
+        }
+
+
+        public static DepthRect WorldBoundsToViewerScreenRect(Bounds bounds) {
 			return WorldBoundsToViewerScreenRect(Camera.main, bounds);
 		}
 
