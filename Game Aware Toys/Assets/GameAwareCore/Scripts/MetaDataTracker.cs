@@ -132,6 +132,8 @@ namespace GameAware {
 
         [Tooltip("A flag to display a local mock overlay showing all of the screenRects of tracked objects")]
         public bool showMockOverlay = false;
+        [Tooltip("Filters the mock overlay to only show objects with names that contain this string. Leave blank to show all objects.")]
+        public string mockOverlayFilterString = string.Empty;
         public Color mockOverlayBoxColor = Color.red;
         public Color mockOverlayTextColor = Color.black;
         private GUIStyle mockOverlayStyle = null;
@@ -455,7 +457,7 @@ namespace GameAware {
                     mockOverlayStyle.normal.textColor = mockOverlayTextColor;
                     mockOverlayStyle.clipping = TextClipping.Overflow;
                 }
-                GUI.Label(new Rect(0, 0, 100, 25), "Mock Overlay Active");
+                GUI.Label(new Rect(0, 0, 200, 50), "Mock Overlay Active");
                 /*foreach (IMetaDataTrackable mdt in MetaDataTracker.Instance.CurrentTrackables) {
                     var screenRect = mdt.ScreenRect();
                     if(screenRect.z < 0) {
@@ -464,11 +466,13 @@ namespace GameAware {
                     GUI.Box(new Rect(screenRect.rect.x, screenRect.rect.y, screenRect.rect.width, screenRect.rect.height), mdt.ObjectKey, mockOverlayStyle);
                 }*/
                 foreach(string key in mockRects.Keys) {
-                    var screenRect = mockRects[key];
-                    if (screenRect.z < 0) {
-                        continue;
+                    if (mockOverlayFilterString == string.Empty || key.Contains(mockOverlayFilterString)) {
+                        var screenRect = mockRects[key];
+                        if (screenRect.z < 0) {
+                            continue;
+                        }
+                        GUI.Box(new Rect(screenRect.rect.x, screenRect.rect.y, screenRect.rect.width, screenRect.rect.height), key, mockOverlayStyle);
                     }
-                    GUI.Box(new Rect(screenRect.rect.x, screenRect.rect.y, screenRect.rect.width, screenRect.rect.height), key, mockOverlayStyle);
                 }
             }
         }
