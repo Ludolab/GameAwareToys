@@ -19,6 +19,7 @@ namespace InvisibleMaze {
             frameType = MetaDataFrameType.Inbetween;
             screenRectStyle = ScreenSpaceReference.Renderer;
             colider= GetComponent<BoxCollider2D>();
+            base.Start();
         }
 
         public override JObject KeyFrameData() {
