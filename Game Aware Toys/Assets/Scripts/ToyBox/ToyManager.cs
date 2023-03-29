@@ -1,7 +1,7 @@
-using GameAware;
-using System;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using GameAware;
+using Newtonsoft.Json;
 
 public class ToyManager : MonoBehaviour {
 
@@ -160,7 +160,10 @@ public class ToyManager : MonoBehaviour {
     }
 
     public void LastKeyFrameGUI() {
-        GUILayout.Label(MetaDataTracker.Instance.LastKeyFrameSent);
+        if(GUILayout.Button("Copy to Clipboard")) {
+            GUIUtility.systemCopyBuffer = JsonConvert.SerializeObject(MetaDataTracker.Instance.LatestFrame);
+        }
+        GUILayout.Label(JsonConvert.SerializeObject(MetaDataTracker.Instance.LatestFrame,Formatting.Indented));
     }
 
     private string LabeledInputField(string label, string value) {

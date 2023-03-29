@@ -18,6 +18,7 @@ namespace GameAware {
         Transform,
         Collider,
         Renderer,
+		Custom
     }
 
 	public static class ScreenSpaceHelper {
@@ -78,7 +79,8 @@ namespace GameAware {
 		}
 
 		private static Vector3[] boundsHelper = new Vector3[8];
-		private static Vector3 min = Vector3.zero;
+        private static Vector3[] rectTransformHelper = new Vector3[4];
+        private static Vector3 min = Vector3.zero;
 		private static Vector3 max = Vector3.zero;
 
 		public static DepthRect WorldBoundsToViewerScreenRect(Camera camera, Renderer renderer) {
@@ -225,10 +227,36 @@ namespace GameAware {
 
 			return new Vector2Int((int)min.x, (int)min.y);
         }
-		
+
+        public static DepthRect RectTransformToViewerScreenRect(RectTransform rectTransform) {
+            return RectTransformToViewerScreenRect(Camera.main, rectTransform);
+        }
+
+        public static DepthRect RectTransformToViewerScreenRect(Camera camera, RectTransform rectTransform) {
+            rectTransform.GetWorldCorners(rectTransformHelper);
+            for (int i = 0; i < 4; i++) {
+                // TODO - I'm not sure this approach is correct in all cases if a UI object is placed diegetically in worldspace.
+                //Debug.LogFormat("<color=cyan>RectTransform</color> Pre WorldCorners[{0}] = {1}", i, rectTransformHelper[i]);
+                //rectTransformHelper[i] = WorldToViewerScreenPoint(camera, rectTransformHelper[i]);
+                rectTransformHelper[i].y = Screen.height - rectTransformHelper[i].y;
+                //Debug.LogFormat("<color=cyan>RectTransform</color> Post WorldCorners[{0}] = {1}", i, rectTransformHelper[i]);
+            }
+            min = rectTransformHelper[0];
+            max = rectTransformHelper[0];
+            foreach (Vector3 vec in rectTransformHelper) {
+                min = Vector3.Min(min, vec);
+                max = Vector3.Max(max, vec);
+            }
+            return new DepthRect(min.x, min.y, max.x - min.x, max.y - min.y, min.z);
+        }
+
     }
 
-	public static class Extensions {
+    public static class Constants {
+        public const string SCREEN_RECT_KEY = "screenRect";
+    }
+
+    public static class Extensions {
 		public static JObject ToJObject(this Vector2Int vec) {
 			return new JObject {
 				{"x", vec.x },
@@ -297,7 +325,12 @@ namespace GameAware {
 		public RectInt rect;
 		public float z;
 
-		public static DepthRect zero = new DepthRect(0, 0, 0, 0, 0);
+        public int x { get { return rect.x; } }
+        public int y { get { return rect.y; } }
+        public int w { get { return rect.width; } }
+        public int h { get { return rect.height; } }
+
+        public static readonly DepthRect zero = new DepthRect(0, 0, 0, 0, 0);
 
 		public DepthRect(int x, int y, int w, int h, float z) {
 			this.rect = new RectInt(x, y, w, h);
@@ -306,10 +339,6 @@ namespace GameAware {
 
         public DepthRect(float x, float y, float w, float h, float z) {
 			this.rect = new RectInt((int)x, (int)y, (int)w, (int)h);
-			/*this.x = (int)x;
-            this.y = (int)y;
-            this.w = (int)w;
-            this.h = (int)h;*/
             this.z = z;
         }
 

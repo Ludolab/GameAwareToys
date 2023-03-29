@@ -41,22 +41,22 @@ namespace GameAware {
 
         [Tooltip("The URL of the Middleware Redis service")]
         public string middleWareURI = "localhost";
-        
+
         [Tooltip("The port used by the Middleware Redis service. The conventional Redis port is 6379.")]
         public int middleWarePort = 6379;
-        
+
         [Tooltip("The number of seconds used to keep the connection to the Middleware service alive")]
         public int keepAliveTime = 180;
-        
+
         [Tooltip("Password for the Middleware Redis service")]
         public string middleWareRedisPassword = "changeme";
-        
+
         [Tooltip("True = a connection to the MiddleWare service will be made on Start. False = a connection to the Middleware service must be triggered at some point later.")]
         public bool BeginMetaDataOnStart = false;
 
         [Tooltip("True = Snaps keyframes without trying to send them to the Middleware for local debugging purposes.")]
         public bool LocalDebug = false;
-        
+
         [Tooltip("Name of your game, hardcoded for the start message")]
         public string gameName = "";
 
@@ -76,13 +76,19 @@ namespace GameAware {
 
         public bool Connected { get { return redDb != null; } }
 
-        public string LastKeyFrameSent { get; private set; }
+        public JObject LatestFrame { get; private set; }
 
-        public IReadOnlyList<IMetaDataTrackable> CurrentTrackables { 
+        public IReadOnlyList<IMetaDataTrackable> CurrentTrackables {
             get {
                 return keyItems.AsReadOnly();
             }
-        } 
+        }
+
+        public long CurrentKeyFrameNum {
+            get {
+                return keyFrameNum;
+            }
+        }
 
         public float CurrentTime {
             get {
@@ -145,7 +151,7 @@ namespace GameAware {
             All,
             ConstantsOnly
         }
-        
+
         [Tooltip("Controls debug printing. All=prints everything, None=turns off everything, ConstantsOnly=only prints start_frame, latest, and end_frame")]
         public DebugSetting debugSetting = DebugSetting.All;
 
@@ -163,7 +169,7 @@ namespace GameAware {
         }
 
         IEnumerator Start() {
-            if (BeginMetaDataOnStart) { 
+            if (BeginMetaDataOnStart) {
                 yield return new WaitForEndOfFrame();
                 yield return StartMetaDataCoroutine();
             }
@@ -171,12 +177,16 @@ namespace GameAware {
 
         void InitConnection() {
             ConfigurationOptions config = new ConfigurationOptions {
-                EndPoints = {
-                    { middleWareURI, middleWarePort },
-                },
+                // EndPoints = {
+                //     { middleWareURI, middleWarePort },
+                // },
+
+                // EndPoints = { { middleWareURI, middleWarePort } },
                 KeepAlive = keepAliveTime,
                 Password = middleWareRedisPassword
             };
+
+            config = ConfigurationOptions.Parse(string.Format("{0}:{1},password={2},keepAlive={3}", middleWareURI, middleWarePort, middleWareRedisPassword, keepAliveTime));
 
             redisConn = ConnectionMultiplexer.Connect(config);
             redDb = redisConn.GetDatabase();
@@ -236,7 +246,7 @@ namespace GameAware {
         /// The immediate flag is to allow for letting the current keyframe playout (immediate=false) or if it should stop everything now (immediate=true) this would require changes throughout the system.
         /// </summary>
         /// <param name="immediate"></param>
-        public void PauseMetaData(bool immediate=false) {
+        public void PauseMetaData(bool immediate = false) {
             throw new NotImplementedException("Haven't implemented metadata pausing yet.");
         }
 
@@ -255,9 +265,6 @@ namespace GameAware {
                             break;
                     }
                     redDb.StringSetAsync(key, message, flags: CommandFlags.FireAndForget);
-                    if(key == LATEST_FRAME) {
-                        LastKeyFrameSent = message;
-                    }
                 }
                 else {
                     switch (debugSetting) {
@@ -271,9 +278,6 @@ namespace GameAware {
                             break;
                     }
                     redDb.StringSet(key, message);
-                    if (key == LATEST_FRAME) {
-                        LastKeyFrameSent = message;
-                    }
                 }
             }
         }
@@ -292,7 +296,7 @@ namespace GameAware {
             if (Time.fixedTime - lastKeyTime > 1 / keyFrameRate) {
                 SendKeyFrame();
             }
-            else if(Time.fixedTime - lastTweenTime > 1 / tweenFrameRate) {
+            else if (Time.fixedTime - lastTweenTime > 1 / tweenFrameRate) {
                 SnapTweenFrame();
             }
         }
@@ -326,10 +330,12 @@ namespace GameAware {
                 tweens = new JArray();
             }
             string frameString = JsonConvert.SerializeObject(currentFrameData);
-            
+
             WriteMetaDataToMiddleware(keyFrameNum.ToString(), frameString, true);
             WriteMetaDataToMiddleware(LATEST_FRAME, frameString, true);
             
+            LatestFrame = currentFrameData;
+
             keyFrameNum += 1;
             SnapKeyFrame();
         }
@@ -346,7 +352,7 @@ namespace GameAware {
          */
         private void SnapKeyFrame() {
             keyItems.AddRange(newItems);
-            foreach(IMetaDataTrackable mdo in newItems) {
+            foreach (IMetaDataTrackable mdo in newItems) {
                 if (mdo.FrameType == MetaDataFrameType.Inbetween) {
                     tweenItems.Add(mdo);
                 }
@@ -355,7 +361,10 @@ namespace GameAware {
             if (showMockOverlay) {
                 mockRects.Clear();
                 foreach (IMetaDataTrackable mdo in keyItems) {
-                    mockRects[mdo.ObjectKey] = mdo.ScreenRect();
+                    DepthRect drect = mdo.ScreenRect();
+                    if (drect.w > 0 && drect.h > 0) {
+                        mockRects[mdo.ObjectKey] = mdo.ScreenRect();
+                    }
                 }
             }
 
@@ -365,7 +374,10 @@ namespace GameAware {
             };
             JObject key = new JObject();
             foreach (IMetaDataTrackable mdo in keyItems) {
-                key[mdo.ObjectKey] = mdo.KeyFrameData();
+                JObject mdoKey = mdo.KeyFrameData();
+                if (mdoKey.Count > 0) {
+                    key[mdo.ObjectKey] = mdoKey;
+                }
             }
             currentFrameData["key"] = key;
 
@@ -377,7 +389,7 @@ namespace GameAware {
         private void SnapTweenFrame() {
             if (showMockOverlay) {
                 mockRects.Clear();
-                foreach(IMetaDataTrackable mdo in keyItems) {
+                foreach (IMetaDataTrackable mdo in keyItems) {
                     mockRects[mdo.ObjectKey] = mdo.ScreenRect();
                 }
             }
@@ -395,7 +407,7 @@ namespace GameAware {
             foreach (IMetaDataTrackable mdo in tweenItems) {
                 JObject mdoTween = mdo.InbetweenData();
                 if (mdoTween.Count > 0) {
-                    newInbetween[mdo.ObjectKey] = mdo.InbetweenData();
+                    newInbetween[mdo.ObjectKey] = mdoTween;
                 }
             }
             if (newInbetween.Count > 0) {
@@ -465,7 +477,7 @@ namespace GameAware {
                     }
                     GUI.Box(new Rect(screenRect.rect.x, screenRect.rect.y, screenRect.rect.width, screenRect.rect.height), mdt.ObjectKey, mockOverlayStyle);
                 }*/
-                foreach(string key in mockRects.Keys) {
+                foreach (string key in mockRects.Keys) {
                     if (mockOverlayFilterString == string.Empty || key.Contains(mockOverlayFilterString)) {
                         var screenRect = mockRects[key];
                         if (screenRect.z < 0) {
