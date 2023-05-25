@@ -92,7 +92,7 @@ namespace GameAware {
 
         public float CurrentTime {
             get {
-                return updateMode == RecordingUpdate.FixedUpdate ? Time.fixedTime : Time.time;
+                return updateMode == RecordingUpdate.FixedUpdate ? Time.fixedUnscaledTime : Time.unscaledTime;
             }
         }
 
@@ -370,6 +370,7 @@ namespace GameAware {
 
             currentFrameData = new JObject {
                 {"game_time", CurrentTimeMills },
+                {"clock_mills",DateTimeOffset.Now.ToUnixTimeMilliseconds().ToString() },
                 {"frame", keyFrameNum }
             };
             JObject key = new JObject();
@@ -402,6 +403,7 @@ namespace GameAware {
             JObject newInbetween = new JObject {
                     {"dt", CurrentTimeMills - LastKeyTimeMills },
                     {"game_time", CurrentTimeMills },
+                    {"clock_mills",DateTimeOffset.Now.ToUnixTimeMilliseconds().ToString() },
                     //{"frame_num", inbetweenNum }
                 };
             foreach (IMetaDataTrackable mdo in tweenItems) {
