@@ -8,6 +8,7 @@ using StackExchange.Redis;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System.Security.Cryptography;
+using System.Security.Policy;
 
 namespace GameAware {
 
@@ -84,15 +85,28 @@ namespace GameAware {
             }
         }
 
+        public int TweenCount {
+            get {
+                return tweens.Count;
+            }
+        }
+
         public long CurrentKeyFrameNum {
             get {
                 return keyFrameNum;
             }
         }
 
+        public bool useUnscaledTime;
+
         public float CurrentTime {
             get {
-                return updateMode == RecordingUpdate.FixedUpdate ? Time.fixedUnscaledTime : Time.unscaledTime;
+                if (useUnscaledTime) {
+                    return updateMode == RecordingUpdate.FixedUpdate ? Time.fixedUnscaledTime : Time.unscaledTime;
+                }
+                else {
+                    return updateMode == RecordingUpdate.FixedUpdate ? Time.fixedTime : Time.time;
+                }
             }
         }
 
@@ -292,33 +306,24 @@ namespace GameAware {
 
         void FixedUpdate() {
             if (updateMode != RecordingUpdate.FixedUpdate || !Recording) return;
-
-            if (Time.fixedTime - lastKeyTime > 1 / keyFrameRate) {
-                SendKeyFrame();
-            }
-            else if (Time.fixedTime - lastTweenTime > 1 / tweenFrameRate) {
-                SnapTweenFrame();
-            }
+            TrackerUpdate();
         }
 
         void Update() {
             if (updateMode != RecordingUpdate.Update || !Recording) return;
-
-            if (Time.time - lastKeyTime > 1 / keyFrameRate) {
-                SendKeyFrame();
-            }
-            else if (Time.time - lastTweenTime > 1 / tweenFrameRate) {
-                SnapTweenFrame();
-            }
+            TrackerUpdate();
         }
 
         void LateUpdate() {
             if (updateMode != RecordingUpdate.LateUpdate || !Recording) return;
+            TrackerUpdate();
+        }
 
-            if (Time.time - lastKeyTime > 1 / keyFrameRate) {
+        void TrackerUpdate() {
+            if (CurrentTime - lastKeyTime > 1 / keyFrameRate) {
                 SendKeyFrame();
             }
-            else if (Time.time - lastTweenTime > 1 / tweenFrameRate) {
+            else if (CurrentTime - lastTweenTime > 1 / tweenFrameRate) {
                 SnapTweenFrame();
             }
         }
@@ -351,6 +356,7 @@ namespace GameAware {
          * keyFrameNum: {"key":{"obj_id1":{}, "obj_id2":{}, ...}}
          */
         private void SnapKeyFrame() {
+            Debug.Log("SnapKeyFrame");
             keyItems.AddRange(newItems);
             foreach (IMetaDataTrackable mdo in newItems) {
                 if (mdo.FrameType == MetaDataFrameType.Inbetween) {
@@ -388,6 +394,7 @@ namespace GameAware {
         }
 
         private void SnapTweenFrame() {
+            Debug.Log("SnapTweenFrame");
             if (showMockOverlay) {
                 mockRects.Clear();
                 foreach (IMetaDataTrackable mdo in keyItems) {
