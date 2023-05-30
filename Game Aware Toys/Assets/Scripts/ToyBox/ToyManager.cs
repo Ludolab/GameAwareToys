@@ -69,6 +69,9 @@ public class ToyManager : MonoBehaviour {
     void WindowFunction(int windowID) {
         GUILayout.BeginVertical();
         GUILayout.Label(string.Format("Current Time:{0}", MetaDataTracker.Instance.CurrentTimeMills));
+        GUILayout.Label(string.Format("Time.time:{0}", Time.time));
+        GUILayout.Label(string.Format("Time.unscaledTime:{0}",Time.unscaledTime));
+
         currentPanel = GUILayout.Toolbar(currentPanel, WindowPanels);
         scrollPos = GUILayout.BeginScrollView(scrollPos);
         
@@ -144,6 +147,8 @@ public class ToyManager : MonoBehaviour {
         MetaDataTracker.Instance.showMockOverlay = GUILayout.Toggle(MetaDataTracker.Instance.showMockOverlay, "Show Mock Overlay");
 
         MetaDataTracker.Instance.mockOverlayFilterString = LabeledInputField("Display Filter:", MetaDataTracker.Instance.mockOverlayFilterString);
+
+        GUILayout.Label(string.Format("Current Tween Count: {0}", MetaDataTracker.Instance.TweenCount));
 
         GUILayout.Label("CurrentTrackables:");
         foreach(IMetaDataTrackable mdt in MetaDataTracker.Instance.CurrentTrackables) {
