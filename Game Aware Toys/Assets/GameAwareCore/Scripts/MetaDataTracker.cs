@@ -227,7 +227,7 @@ namespace GameAware {
                     {"key_frame_rate", keyFrameRate },
                     {"tween_frame_rate", tweenFrameRate },
                     {"game_time", CurrentTimeMills },
-                    {"clock_mills",DateTimeOffset.Now.ToUnixTimeMilliseconds().ToString() },
+                    {"clock_mills",DateTimeOffset.Now.ToUnixTimeMilliseconds() },
                     {"screen_width", Screen.width },
                     {"screen_height", Screen.height },
                 };
@@ -244,7 +244,7 @@ namespace GameAware {
             var endMessage = new JObject {
                 {"final_frame_num", keyFrameNum },
                 {"game_time", CurrentTimeMills },
-                {"clock_mills",DateTimeOffset.Now.ToUnixTimeMilliseconds().ToString() },
+                {"clock_mills",DateTimeOffset.Now.ToUnixTimeMilliseconds() },
             };
             string mess = JsonConvert.SerializeObject(endMessage);
             WriteMetaDataToMiddleware(END_FRAME, mess, false);
@@ -376,7 +376,7 @@ namespace GameAware {
 
             currentFrameData = new JObject {
                 {"game_time", CurrentTimeMills },
-                {"clock_mills",DateTimeOffset.Now.ToUnixTimeMilliseconds().ToString() },
+                {"clock_mills",DateTimeOffset.Now.ToUnixTimeMilliseconds() },
                 {"frame", keyFrameNum }
             };
             JObject key = new JObject();
@@ -410,7 +410,7 @@ namespace GameAware {
             JObject newInbetween = new JObject {
                     {"dt", CurrentTimeMills - LastKeyTimeMills },
                     {"game_time", CurrentTimeMills },
-                    {"clock_mills",DateTimeOffset.Now.ToUnixTimeMilliseconds().ToString() },
+                    {"clock_mills",DateTimeOffset.Now.ToUnixTimeMilliseconds() },
                     //{"frame_num", inbetweenNum }
                 };
             foreach (IMetaDataTrackable mdo in tweenItems) {
