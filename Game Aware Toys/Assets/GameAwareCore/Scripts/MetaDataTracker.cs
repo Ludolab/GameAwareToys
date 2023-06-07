@@ -7,8 +7,7 @@ using System;
 using StackExchange.Redis;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using System.Security.Cryptography;
-using System.Security.Policy;
+using System.IO;
 
 namespace GameAware {
 
@@ -221,20 +220,21 @@ namespace GameAware {
                 while (!Connected) {
                     yield return new WaitForEndOfFrame();
                 }
-                var startMessage = new JObject {
-                    {"game_name", gameName },
-                    {"streamer_name", streamerName },
-                    {"key_frame_rate", keyFrameRate },
-                    {"tween_frame_rate", tweenFrameRate },
-                    {"game_time", CurrentTimeMills },
-                    {"clock_mills",DateTimeOffset.Now.ToUnixTimeMilliseconds() },
-                    {"screen_width", Screen.width },
-                    {"screen_height", Screen.height },
-                };
-                string mess = JsonConvert.SerializeObject(startMessage);
-                PublishMessageToMiddleware(PUB_SUB_CHANNEL, "start");
-                WriteMetaDataToMiddleware(START_FRAME, mess, false);
             }
+            InitLog();
+            var startMessage = new JObject {
+                {"game_name", gameName },
+                {"streamer_name", streamerName },
+                {"key_frame_rate", keyFrameRate },
+                {"tween_frame_rate", tweenFrameRate },
+                {"game_time", CurrentTimeMills },
+                {"clock_mills",DateTimeOffset.Now.ToUnixTimeMilliseconds() },
+                {"screen_width", Screen.width },
+                {"screen_height", Screen.height },
+            };
+            string mess = JsonConvert.SerializeObject(startMessage);
+            PublishMessageToMiddleware(PUB_SUB_CHANNEL, "start");
+            WriteMetaDataToMiddleware(START_FRAME, mess, false);
             Recording = true;
             SnapKeyFrame();
         }
@@ -253,6 +253,7 @@ namespace GameAware {
             if (redisConn != null) {
                 redisConn.Close();
             }
+            CloseLog();
         }
 
         /// <summary>
@@ -266,7 +267,7 @@ namespace GameAware {
 
 
         private void WriteMetaDataToMiddleware(string key, string message, bool asynchronous) {
-            if (Connected) {
+            if (!LocalDebug && Connected) {
                 if (asynchronous) {
                     switch (debugSetting) {
                         case DebugSetting.All:
@@ -294,10 +295,13 @@ namespace GameAware {
                     redDb.StringSet(key, message);
                 }
             }
+            if(logWriter != null) {
+                WriteLog(key, message);
+            }
         }
 
         private void PublishMessageToMiddleware(string channel, string message) {
-            if (Connected) {
+            if (!LocalDebug && Connected) {
                 redDb.Publish(channel, message);
             }
         }
@@ -495,6 +499,47 @@ namespace GameAware {
                         GUI.Box(new Rect(screenRect.rect.x, screenRect.rect.y, screenRect.rect.width, screenRect.rect.height), key, mockOverlayStyle);
                     }
                 }
+            }
+        }
+
+        public bool createLogFile = false;
+        public string logFilePath = "C:\\Users\\eharpste\\Desktop\\";
+        public string logPrefix;
+        private TextWriter logWriter = null;
+
+        public void InitLog() {
+            if(!createLogFile) {
+                return;
+            }
+            string logPath = logFilePath + logPrefix + "_" + DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss") + ".txt";
+
+            try {
+                logWriter = new StreamWriter(logPath);
+            }
+            catch (Exception ex) {
+                Debug.LogError("Failed to create a log Writer");
+                Debug.LogException(ex);
+                logWriter = null;
+            }
+
+            if(logWriter != null) {
+                logWriter.Write("{");
+            }
+        }
+
+        public void WriteLog(string key, string frame) {
+            if (logWriter != null) {
+                logWriter.WriteLine( string.Format("\"{0}\":{1},",key, frame));
+                logWriter.Flush();
+            }
+        }
+
+        public void CloseLog() {
+            if (logWriter != null) {
+                logWriter.Write("}");
+                logWriter.Flush();
+                logWriter.Close();
+                logWriter = null;
             }
         }
     }
