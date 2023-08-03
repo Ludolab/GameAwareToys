@@ -200,7 +200,7 @@ namespace GameAware {
             };
 
             config = ConfigurationOptions.Parse(string.Format("{0}:{1},password={2},keepAlive={3}", middleWareURI, middleWarePort, middleWareRedisPassword, keepAliveTime));
-
+            config.AllowAdmin = true;
             redisConn = ConnectionMultiplexer.Connect(config);
             redDb = redisConn.GetDatabase();
         }
@@ -221,6 +221,9 @@ namespace GameAware {
                     yield return new WaitForEndOfFrame();
                 }
             }
+            IServer server = redisConn.GetServer(middleWareURI, middleWarePort);
+
+            server.FlushDatabase();
             InitLog();
             var startMessage = new JObject {
                 {"game_name", gameName },
